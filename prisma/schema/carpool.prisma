@@ -1,0 +1,45 @@
+model Carpool {
+    id String @id @default(uuid())
+
+    title String?
+
+    pickupId String?
+    pickup   Location? @relation("carpool_pickup", fields: [pickupId], references: [id], onDelete: SetNull)
+
+    dropoffId String?
+    dropoff   Location? @relation("carpool_dropoff", fields: [dropoffId], references: [id], onDelete: SetNull)
+
+    repeatMetadata Json? @default("{}")
+
+    nextStartAt DateTime?
+    nextEndAt   DateTime?
+
+    notes String?
+
+    driverId Int?
+    driver   User? @relation("carpool_driver", fields: [driverId], references: [id], onDelete: SetNull)
+
+    members CarpoolMember[]
+
+    // ===========================
+
+    isDeleted Boolean @default(false)
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    deletedAt DateTime?
+
+    @@map("carpools")
+}
+
+model CarpoolMember {
+    id String @id @default(uuid())
+
+    carpoolId String
+    carpool   Carpool @relation(fields: [carpoolId], references: [id], onDelete: Cascade)
+
+    userId Int
+    user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    role String
+}

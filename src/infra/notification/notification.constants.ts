@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 
-export const NOTIFICATION_QUEUE = 'nest-it-notification';
+export const NOTIFICATION_QUEUE = 'hadikid-notification';
 export const NOTIFICATION_JOBS = {
   SEND: 'notification.send',
 } as const;

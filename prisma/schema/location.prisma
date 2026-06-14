@@ -42,6 +42,9 @@ model Location {
 
   savedLocations SavedLocation[]
 
+  carpoolPickup  Carpool[] @relation("carpool_pickup")
+  carpoolDropoff Carpool[] @relation("carpool_dropoff")
+
   @@index([latitude, longitude])
   @@index([country, state, city])
   @@index([updatedAt])

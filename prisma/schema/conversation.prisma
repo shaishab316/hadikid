@@ -27,7 +27,7 @@ model ConversationParticipant {
   conversationId String
   userId         Int
 
-  role ConversationParticipantRole @default(MEMBER)
+  role String
 
   lastSeenMessageId String?
   lastSeenMessage   ConversationMessage? @relation("last_seen_message", fields: [lastSeenMessageId], references: [id], onDelete: SetNull)
@@ -43,12 +43,6 @@ model ConversationParticipant {
   @@index([conversationId])
   @@index([userId])
   @@map("conversation_participants")
-}
-
-enum ConversationParticipantRole {
-  OWNER
-  ADMIN
-  MEMBER
 }
 
 model ConversationMessage {

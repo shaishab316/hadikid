@@ -106,7 +106,7 @@ const envSchema = z.object({
   SMTP_FROM_EMAIL: z
     .email('SMTP_FROM_EMAIL must be a valid email')
     .describe('Email sender address'),
-  SMTP_FROM_NAME: z.string().default('nest-it').describe('Email sender name'),
+  SMTP_FROM_NAME: z.string().default('hadikid').describe('Email sender name'),
 
   // Admin
   ADMIN_EMAIL: z

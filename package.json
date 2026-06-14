@@ -1,7 +1,7 @@
 {
-  "name": "nest-it",
+  "name": "hadikid",
   "version": "1.0.0",
-  "description": "Nest Js boilerplate",
+  "description": "HadiKid - A complete system for a childcare/after-school program management",
   "author": "https://github.com/shaishab316",
   "keywords": [
     "nestjs"

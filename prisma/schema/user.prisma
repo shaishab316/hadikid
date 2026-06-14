@@ -9,7 +9,7 @@ model User {
 
   phone String? @unique
 
-  gender Gender?
+  gender String?
 
   dob DateTime?
 
@@ -26,12 +26,12 @@ model User {
 
   //======= Flags ============
 
-  status          UserStatus? @default(INACTIVE)
-  isEmailVerified Boolean?    @default(false)
-  isPhoneVerified Boolean?    @default(false)
-  isFaceVerified  Boolean?    @default(false)
-  isOnline        Boolean?    @default(false)
-  lastOnlineAt    DateTime?   @default(now())
+  status          String?
+  isEmailVerified Boolean?  @default(false)
+  isPhoneVerified Boolean?  @default(false)
+  isFaceVerified  Boolean?  @default(false)
+  isOnline        Boolean?  @default(false)
+  lastOnlineAt    DateTime? @default(now())
 
   rating      Decimal? @default(0.0) @db.Decimal(2, 1)
   ratingCount Int?     @default(0)
@@ -57,6 +57,10 @@ model User {
 
   notifications Notification[]
   devices       UserDevice[]
+
+  driverCarpools Carpool[] @relation("carpool_driver")
+
+  carpoolMembers CarpoolMember[]
 
   @@index([slug])
   @@index([email])
@@ -106,34 +110,11 @@ model UserRoleMapping {
   id String @id @default(uuid())
 
   userId Int
-  role   UserRole
+  role   String
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, role])
   @@index([userId])
   @@map("user_role_mappings")
-}
-
-enum UserRole {
-  SUPER_ADMIN
-  ADMIN
-
-  //============================================
-
-  USER
-}
-
-enum UserStatus {
-  ACTIVE
-  INACTIVE
-  LOCKED
-  SUSPENDED
-  DELETED
-}
-
-enum Gender {
-  MALE
-  FEMALE
-  NOT_SPECIFIED
 }

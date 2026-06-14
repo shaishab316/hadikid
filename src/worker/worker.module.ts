@@ -29,7 +29,7 @@ import { NotificationWorkerModule } from '@/infra/notification/notification-work
           }),
           new LokiTransport({
             host: config.get('LOKI_URL', { infer: true }),
-            labels: { job: 'nestjs-worker', app: 'nest-it' },
+            labels: { job: 'nestjs-worker', app: 'hadikid' },
           }),
         ],
       }),

@@ -46,3 +46,12 @@ export const ConversationInclude: Prisma.ConversationInclude = {
     include: MessageInclude,
   },
 };
+
+export const ConversationParticipantRole = {
+  OWNER: 'OWNER',
+  ADMIN: 'ADMIN',
+  MEMBER: 'MEMBER',
+} as const;
+
+export type ConversationParticipantRole =
+  keyof typeof ConversationParticipantRole;

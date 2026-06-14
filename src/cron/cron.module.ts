@@ -29,7 +29,7 @@ import { MailModule } from '@/infra/mail/mail.module';
           }),
           new LokiTransport({
             host: config.get('LOKI_URL', { infer: true }),
-            labels: { job: 'nestjs-cron', app: 'nest-it' },
+            labels: { job: 'nestjs-cron', app: 'hadikid' },
           }),
         ],
       }),

@@ -44,7 +44,7 @@ async function bootstrap() {
         ? [
             new LokiTransport({
               host: process.env.LOKI_URL!,
-              labels: { job: 'nestjs', app: 'nest-it' },
+              labels: { job: 'nestjs', app: 'hadikid' },
             }),
           ]
         : []),

@@ -23,7 +23,7 @@ export class MediaService {
       try {
         const result = await this.cloudinaryService.uploadFile({
           file,
-          folder: 'nest-it/media/images',
+          folder: 'hadikid/media/images',
           resourceType: 'image',
         });
 
@@ -73,7 +73,7 @@ export class MediaService {
     try {
       const result = await this.cloudinaryService.uploadFile({
         file,
-        folder: 'nest-it/media/videos',
+        folder: 'hadikid/media/videos',
         resourceType: 'video',
       });
 
