@@ -1,0 +1,76 @@
+model Conversation {
+  id String @id @default(uuid())
+
+  name String?
+
+  isGroup           Boolean @default(false)
+  isCustomerSupport Boolean @default(false)
+
+  imageId String?
+  image   Media?  @relation("conversation_image", fields: [imageId], references: [id], onDelete: SetNull)
+
+  participants ConversationParticipant[]
+  messages     ConversationMessage[]     @relation("conversation_messages")
+
+  lastMessageId String?              @unique
+  lastMessage   ConversationMessage? @relation("last_message", fields: [lastMessageId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id String @id @default(uuid())
+
+  conversationId String
+  userId         Int
+
+  role ConversationParticipantRole @default(MEMBER)
+
+  lastSeenMessageId String?
+  lastSeenMessage   ConversationMessage? @relation("last_seen_message", fields: [lastSeenMessageId], references: [id], onDelete: SetNull)
+
+  unreadMessagesCount Int @default(0)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([conversationId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+enum ConversationParticipantRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model ConversationMessage {
+  id String @id @default(uuid())
+
+  conversationId String
+  senderId       Int
+
+  content String?
+
+  attachments Media[] @relation("message_attachments")
+
+  conversation Conversation @relation("conversation_messages", fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  lastSeenBy    ConversationParticipant[] @relation("last_seen_message")
+  lastMessageOf Conversation?             @relation("last_message")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@map("conversation_messages")
+}

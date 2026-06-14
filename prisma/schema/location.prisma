@@ -1,0 +1,86 @@
+model Location {
+  id String @id @default(uuid())
+
+  remarks String?
+
+  latitude  Float?
+  longitude Float?
+
+  addressLine1 String?
+  addressLine2 String?
+
+  country String?
+  state   String?
+  city    String?
+  zipCode String?
+
+  note String? // Additional notes about the location
+
+  updatedAt DateTime @updatedAt
+
+  //============= other indexes =============
+
+  h3IndexLevel5 String?
+  h3IndexLevel6 String?
+  h3IndexLevel7 String?
+  h3IndexLevel8 String?
+
+  geoHashLevel5 String?
+  geoHashLevel6 String?
+  geoHashLevel7 String?
+  geoHashLevel8 String?
+
+  s2CellIdLevel5 String?
+  s2CellIdLevel6 String?
+  s2CellIdLevel7 String?
+  s2CellIdLevel8 String?
+
+  userId Int?  @unique
+  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  histories LocationHistory[]
+
+  savedLocations SavedLocation[]
+
+  @@index([latitude, longitude])
+  @@index([country, state, city])
+  @@index([updatedAt])
+  @@map("locations")
+}
+
+model LocationHistory {
+  id String @id @default(uuid())
+
+  userId     Int?
+  locationId String?
+
+  user     User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  recordedAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([locationId])
+  @@index([recordedAt])
+  @@map("location_histories")
+}
+
+model SavedLocation {
+  id String @id @default(uuid())
+
+  userId     Int?
+  locationId String?
+
+  remarks String?
+
+  isPrimary Boolean? @default(false)
+
+  user     User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, locationId])
+  @@map("saved_locations")
+}

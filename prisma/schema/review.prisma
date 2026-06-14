@@ -1,0 +1,22 @@
+model Review {
+  id String @id @default(uuid())
+
+  rating Decimal @db.Decimal(2, 1)
+
+  comment String?
+
+  metadata Json?
+
+  type ReviewType
+
+  reviewerId Int?
+  reviewer   User? @relation("reviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  @@index([reviewerId])
+  @@map("reviews")
+}
+
+enum ReviewType {
+  USER
+  CARPOOL
+}

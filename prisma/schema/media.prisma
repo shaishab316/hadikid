@@ -1,0 +1,46 @@
+model Media {
+  id String @id @default(uuid())
+
+  userId Int?
+  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  url              String
+  type             MediaType
+  mimeType         String?
+  previewUrl       String?
+  bytes            String?
+  width            Int?
+  height           Int?
+  provider         StorageProvider @default(EXTERNAL)
+  providerPublicId String?
+  metadata         Json            @default("{}")
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  ttl DateTime?
+
+  messageAttachments ConversationMessage[] @relation("message_attachments")
+
+  profilePictureOfUsers User[]         @relation("profile_pictures")
+  conversations         Conversation[] @relation("conversation_image")
+
+  @@index([userId])
+  @@index([type, createdAt])
+  @@index([ttl])
+  @@map("medias")
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+}
+
+enum StorageProvider {
+  CLOUDINARY
+  AWS_S3
+  GCS
+  LOCAL
+  EXTERNAL
+}

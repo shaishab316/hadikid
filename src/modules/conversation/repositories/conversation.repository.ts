@@ -1,0 +1,194 @@
+import { PrismaService } from '@/infra/prisma/prisma.service';
+import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { ConversationInclude, MessageInclude } from '../conversation.constant';
+
+@Injectable()
+export class ConversationRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async countUsersByIds(ids: number[]): Promise<number> {
+    return await this.prisma.user.count({
+      where: { id: { in: ids } },
+    });
+  }
+
+  async findDirectConversation(user1Id: number, user2Id: number) {
+    if (user1Id === user2Id) {
+      return await this.prisma.conversation.findFirst({
+        where: {
+          isGroup: false,
+          isCustomerSupport: false,
+          participants: {
+            every: { userId: user1Id },
+          },
+        },
+        include: ConversationInclude,
+      });
+    }
+
+    return await this.prisma.conversation.findFirst({
+      where: {
+        isGroup: false,
+        isCustomerSupport: false,
+        AND: [
+          { participants: { some: { userId: user1Id } } },
+          { participants: { some: { userId: user2Id } } },
+        ],
+      },
+      include: ConversationInclude,
+    });
+  }
+
+  async createConversation(data: {
+    name?: string;
+    isGroup: boolean;
+    isCustomerSupport?: boolean;
+    participants: { userId: number; role: 'OWNER' | 'ADMIN' | 'MEMBER' }[];
+  }) {
+    return await this.prisma.conversation.create({
+      data: {
+        name: data.name,
+        isGroup: data.isGroup,
+        isCustomerSupport: data.isCustomerSupport ?? false,
+        participants: {
+          create: data.participants.map((p) => ({
+            userId: p.userId,
+            role: p.role,
+          })),
+        },
+      },
+      include: ConversationInclude,
+    });
+  }
+
+  async findUserConversations(userId: number, limit: number, page: number) {
+    const where: Prisma.ConversationWhereInput = {
+      participants: {
+        some: { userId },
+      },
+    };
+
+    const conversations = await this.prisma.conversation.findMany({
+      where,
+      take: limit,
+      skip: (page - 1) * limit,
+      orderBy: {
+        updatedAt: 'desc',
+      },
+      include: ConversationInclude,
+    });
+
+    const count = await this.prisma.conversation.count({ where });
+    return [
+      conversations.map(({ participants, ...chat }) => ({
+        ...chat,
+        participants: participants.map(({ user, role }: any) => ({
+          ...user,
+          role,
+        })),
+      })),
+      count,
+    ] as const;
+  }
+
+  async findById(id: string, userId: number) {
+    return await this.prisma.conversation.findFirst({
+      where: {
+        id,
+        participants: {
+          some: { userId },
+        },
+      },
+      include: ConversationInclude,
+    });
+  }
+
+  async findMessages(conversationId: string, limit: number, cursor?: string) {
+    const where: Prisma.ConversationMessageWhereInput = { conversationId };
+    const messages = await this.prisma.conversationMessage.findMany({
+      where,
+      take: limit + 1,
+      cursor: cursor ? { id: cursor } : undefined,
+      skip: cursor ? 1 : 0,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      include: MessageInclude,
+    });
+
+    let nextCursor: string | null = null;
+    if (messages.length > limit) {
+      const nextMessage = messages.pop();
+      nextCursor = nextMessage ? nextMessage.id : null;
+    }
+
+    return [messages, nextCursor] as const;
+  }
+
+  async createMessage(
+    conversationId: string,
+    senderId: number,
+    content?: string,
+    attachmentIds?: string[],
+  ) {
+    return await this.prisma.$transaction(async (tx) => {
+      // 1. Create message
+      const message = await tx.conversationMessage.create({
+        data: {
+          conversationId,
+          senderId,
+          content,
+          attachments:
+            attachmentIds && attachmentIds.length > 0
+              ? {
+                  connect: attachmentIds.map((id) => ({ id })),
+                }
+              : undefined,
+        },
+        include: MessageInclude,
+      });
+
+      // 2. Update conversation's lastMessageId and updatedAt
+      await tx.conversation.update({
+        where: { id: conversationId },
+        data: {
+          lastMessageId: message.id,
+          updatedAt: new Date(),
+        },
+      });
+
+      // 3. Increment unread count for other participants
+      await tx.conversationParticipant.updateMany({
+        where: {
+          conversationId,
+          userId: { not: senderId },
+        },
+        data: {
+          unreadMessagesCount: {
+            increment: 1,
+          },
+        },
+      });
+
+      return message;
+    });
+  }
+
+  async markAsRead(
+    conversationId: string,
+    userId: number,
+    lastMessageId: string,
+  ) {
+    return await this.prisma.conversationParticipant.updateMany({
+      where: {
+        conversationId,
+        userId,
+      },
+      data: {
+        unreadMessagesCount: 0,
+        lastSeenMessageId: lastMessageId,
+      },
+    });
+  }
+}

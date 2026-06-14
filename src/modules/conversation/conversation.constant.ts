@@ -1,0 +1,48 @@
+import { Prisma } from '@prisma/client';
+import { UserSelect } from '../user/user.constant';
+import { imgSelect } from '../media/media.constant';
+
+export const ParticipantInclude: Prisma.ConversationParticipantInclude = {
+  user: {
+    select: {
+      ...UserSelect,
+      location: false,
+    },
+  },
+};
+
+export const MessageInclude: Prisma.ConversationMessageInclude = {
+  sender: {
+    select: {
+      ...UserSelect,
+      location: false,
+    },
+  },
+  attachments: {
+    select: imgSelect,
+  },
+};
+
+export const ConversationInclude: Prisma.ConversationInclude = {
+  image: {
+    select: imgSelect,
+  },
+  participants: {
+    select: {
+      role: true,
+      user: {
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          profilePicture: {
+            select: imgSelect,
+          },
+        },
+      },
+    },
+  },
+  lastMessage: {
+    include: MessageInclude,
+  },
+};

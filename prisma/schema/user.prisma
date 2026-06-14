@@ -1,0 +1,139 @@
+model User {
+  id Int @id @default(autoincrement())
+
+  slug String? // u-00000{id}
+
+  name String?
+
+  email String? @unique
+
+  phone String? @unique
+
+  gender Gender?
+
+  dob DateTime?
+
+  location Location?
+
+  emergencyPhone String?
+
+  publicPhone String?
+
+  publicEmail String?
+
+  profilePictureId String?
+  profilePicture   Media?  @relation("profile_pictures", fields: [profilePictureId], references: [id], onDelete: SetNull)
+
+  //======= Flags ============
+
+  status          UserStatus? @default(INACTIVE)
+  isEmailVerified Boolean?    @default(false)
+  isPhoneVerified Boolean?    @default(false)
+  isFaceVerified  Boolean?    @default(false)
+  isOnline        Boolean?    @default(false)
+  lastOnlineAt    DateTime?   @default(now())
+
+  rating      Decimal? @default(0.0) @db.Decimal(2, 1)
+  ratingCount Int?     @default(0)
+
+  //===============================
+
+  roles UserRoleMapping[]
+
+  auth Authentication?
+
+  locationHistories LocationHistory[]
+
+  savedLocations SavedLocation[]
+
+  conversationParticipants ConversationParticipant[]
+  conversationMessages     ConversationMessage[]
+
+  medias Media[]
+
+  wallet Wallet?
+
+  reviewsBy Review[] @relation("reviewer")
+
+  notifications Notification[]
+  devices       UserDevice[]
+
+  @@index([slug])
+  @@index([email])
+  @@index([phone])
+  @@index([status])
+  @@index([isEmailVerified])
+  @@index([isPhoneVerified])
+  @@index([isOnline])
+  @@index([lastOnlineAt])
+  @@map("users")
+}
+
+model Authentication {
+  id String @id @default(uuid())
+
+  userId Int @unique
+
+  passwordHash String?
+
+  lastLoginAt          DateTime?
+  lastPasswordChangeAt DateTime?
+
+  wrongPasswordAttempts Int? @default(0)
+
+  canLogin Boolean? @default(true)
+
+  canChangePassword Boolean? @default(true)
+
+  mustChangePassword Boolean? @default(false)
+
+  twoFactorEnabled Boolean? @default(false)
+
+  twoFactorSecret String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([wrongPasswordAttempts])
+  @@index([lastLoginAt])
+  @@index([lastPasswordChangeAt])
+  @@index([canLogin])
+  @@index([mustChangePassword])
+  @@index([twoFactorEnabled])
+  @@map("authentications")
+}
+
+model UserRoleMapping {
+  id String @id @default(uuid())
+
+  userId Int
+  role   UserRole
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@index([userId])
+  @@map("user_role_mappings")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+
+  //============================================
+
+  USER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  LOCKED
+  SUSPENDED
+  DELETED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  NOT_SPECIFIED
+}

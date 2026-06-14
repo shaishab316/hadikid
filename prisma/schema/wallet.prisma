@@ -1,0 +1,10 @@
+model Wallet {
+  id String @id @default(uuid())
+
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  balance Decimal @default(0) @db.Decimal(12, 2)
+
+  @@map("wallets")
+}
