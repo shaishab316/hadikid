@@ -1,0 +1,18 @@
+model Child {
+    id String @id @default(uuid())
+
+    name  String?
+    class String?
+
+    relationship String?
+
+    schoolId String?
+    school   School? @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+
+    photoId String?
+    photo   Media?  @relation("child_photo", fields: [photoId], references: [id], onDelete: SetNull)
+
+    carpoolMembers CarpoolMember[] @relation("carpool_member_children")
+
+    @@map("children")
+}

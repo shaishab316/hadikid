@@ -1,0 +1,43 @@
+model ContactRequest {
+    id String @id @default(uuid())
+
+    senderId Int
+    sender   User @relation("contact_request_sender", fields: [senderId], references: [id], onDelete: Cascade)
+
+    receiverId Int
+    receiver   User @relation("contact_request_receiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+    blocked   Boolean   @default(false)
+    blockedAt DateTime?
+
+    message String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([senderId])
+    @@index([receiverId])
+    @@index([blocked])
+    @@map("contact_requests")
+}
+
+model Contact {
+    id String @id @default(uuid())
+
+    userId1 Int
+    user1   User @relation("contacts1", fields: [userId1], references: [id], onDelete: Cascade)
+
+    userId2 Int
+    user2   User @relation("contacts2", fields: [userId2], references: [id], onDelete: Cascade)
+
+    alias1 String?
+    alias2 String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([userId1, userId2])
+    @@index([userId1])
+    @@index([userId2])
+    @@map("contacts")
+}

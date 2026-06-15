@@ -9,10 +9,10 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { CloudinaryService } from '@/infra/upload/cloudinary.service';
 import { UserRegisterDto } from './dto/register.user.dto';
 import { comparePassword, generateOtp, hashPassword } from '@/common/helpers';
-import { UserRole, UserStatus } from '@prisma/client';
 import { AccountVerifyOtpDto } from './dto/account-verify-otp.dto';
 import { MailService } from '@/infra/mail/mail.service';
 import { AuthRepository } from '../auth/repository/auth.repository';
+import { UserRole, UserStatus } from './user.constant';
 
 @Injectable()
 export class UserService {

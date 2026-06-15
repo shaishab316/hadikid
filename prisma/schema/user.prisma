@@ -62,6 +62,12 @@ model User {
 
   carpoolMembers CarpoolMember[]
 
+  contactRequestsSender   ContactRequest[] @relation("contact_request_sender")
+  contactRequestsReceiver ContactRequest[] @relation("contact_request_receiver")
+  contacts1               Contact[]        @relation("contacts1")
+  contacts2               Contact[]        @relation("contacts2")
+  carpoolInvites          CarpoolInvite[]
+
   @@index([slug])
   @@index([email])
   @@index([phone])

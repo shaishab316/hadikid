@@ -8,9 +8,10 @@ import { JwtService } from '@nestjs/jwt';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { User, UserRole, UserStatus } from '@prisma/client';
+import { User } from '@prisma/client';
 import { resolveLocation } from '../address/address.constant';
 import { NotificationService } from '@/infra/notification/notification.service';
+import { UserRole, UserStatus } from '../user/user.constant';
 
 @Injectable()
 export class AuthService {
@@ -63,7 +64,7 @@ export class AuthService {
 
     const accessToken = this.genAccessToken(
       user,
-      user.roles.map((r) => r.role),
+      user.roles.map((r) => r.role as UserRole),
     );
 
     const refreshToken = generateNonce(64);
@@ -206,7 +207,7 @@ export class AuthService {
 
     const accessToken = this.genAccessToken(
       user,
-      user.roles.map((r) => r.role),
+      user.roles.map((r) => r.role as UserRole),
     );
 
     const newRefreshToken = generateNonce(64);

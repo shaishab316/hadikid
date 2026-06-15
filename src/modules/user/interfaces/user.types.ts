@@ -1,4 +1,4 @@
-import { UserRole } from '@prisma/client';
+import { UserRole } from '../user.constant';
 
 export type UnverifiedUser = {
   name: string;

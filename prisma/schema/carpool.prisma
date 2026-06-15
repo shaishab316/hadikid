@@ -9,6 +9,9 @@ model Carpool {
     dropoffId String?
     dropoff   Location? @relation("carpool_dropoff", fields: [dropoffId], references: [id], onDelete: SetNull)
 
+    vehicleLocationId String?
+    vehicleLocation   Location? @relation("carpool_vehicle_location", fields: [vehicleLocationId], references: [id], onDelete: SetNull)
+
     repeatMetadata Json? @default("{}")
 
     nextStartAt DateTime?
@@ -20,6 +23,7 @@ model Carpool {
     driver   User? @relation("carpool_driver", fields: [driverId], references: [id], onDelete: SetNull)
 
     members CarpoolMember[]
+    invites CarpoolInvite[]
 
     // ===========================
 
@@ -29,6 +33,13 @@ model Carpool {
     updatedAt DateTime  @updatedAt
     deletedAt DateTime?
 
+    @@index([isDeleted])
+    @@index([driverId])
+    @@index([pickupId])
+    @@index([dropoffId])
+    @@index([vehicleLocationId])
+    @@index([nextStartAt])
+    @@index([nextEndAt])
     @@map("carpools")
 }
 
@@ -41,5 +52,30 @@ model CarpoolMember {
     userId Int
     user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    role String
+    children Child[] @relation("carpool_member_children")
+
+    role String?
+
+    @@index([carpoolId])
+    @@index([userId])
+    @@map("carpool_members")
+}
+
+model CarpoolInvite {
+    id String @id @default(uuid())
+
+    carpoolId String
+    carpool   Carpool @relation(fields: [carpoolId], references: [id], onDelete: Cascade)
+
+    userId Int
+    user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    message String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([carpoolId])
+    @@index([userId])
+    @@map("carpool_invites")
 }

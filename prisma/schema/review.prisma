@@ -7,7 +7,7 @@ model Review {
 
   metadata Json?
 
-  type ReviewType
+  type String?
 
   reviewerId Int?
   reviewer   User? @relation("reviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
@@ -16,7 +16,7 @@ model Review {
   @@map("reviews")
 }
 
-enum ReviewType {
-  USER
-  CARPOOL
-}
+// enum ReviewType {
+//   USER
+//   CARPOOL
+// }

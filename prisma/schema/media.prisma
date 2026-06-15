@@ -5,17 +5,17 @@ model Media {
   user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   url              String
-  type             MediaType
+  type             String
   mimeType         String?
   previewUrl       String?
   bytes            String?
   width            Int?
   height           Int?
-  provider         StorageProvider @default(EXTERNAL)
+  provider         String?
   providerPublicId String?
-  metadata         Json            @default("{}")
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  metadata         Json     @default("{}")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   ttl DateTime?
 
@@ -24,23 +24,13 @@ model Media {
   profilePictureOfUsers User[]         @relation("profile_pictures")
   conversations         Conversation[] @relation("conversation_image")
 
+  schoolPhotos  School[] @relation("school_photo")
+  schoolBanners School[] @relation("school_banner")
+
+  childPhotos Child[] @relation("child_photo")
+
   @@index([userId])
   @@index([type, createdAt])
   @@index([ttl])
   @@map("medias")
-}
-
-enum MediaType {
-  IMAGE
-  VIDEO
-  AUDIO
-  DOCUMENT
-}
-
-enum StorageProvider {
-  CLOUDINARY
-  AWS_S3
-  GCS
-  LOCAL
-  EXTERNAL
 }
