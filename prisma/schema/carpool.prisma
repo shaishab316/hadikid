@@ -12,10 +12,7 @@ model Carpool {
     vehicleLocationId String?
     vehicleLocation   Location? @relation("carpool_vehicle_location", fields: [vehicleLocationId], references: [id], onDelete: SetNull)
 
-    repeatMetadata Json? @default("{}")
-
-    nextStartAt DateTime?
-    nextEndAt   DateTime?
+    repeatRule CarpoolRepeatRule?
 
     notes String?
 
@@ -24,6 +21,7 @@ model Carpool {
 
     members CarpoolMember[]
     invites CarpoolInvite[]
+    rounds  CarpoolRound[]
 
     // ===========================
 
@@ -38,8 +36,6 @@ model Carpool {
     @@index([pickupId])
     @@index([dropoffId])
     @@index([vehicleLocationId])
-    @@index([nextStartAt])
-    @@index([nextEndAt])
     @@map("carpools")
 }
 
@@ -54,7 +50,9 @@ model CarpoolMember {
 
     children Child[] @relation("carpool_member_children")
 
-    role String?
+    role                          String?
+    carpoolRoundPickupChecklists  CarpoolRoundPickupChecklist[]
+    carpoolRoundDropoffChecklists CarpoolRoundDropoffChecklist[]
 
     @@index([carpoolId])
     @@index([userId])
@@ -78,4 +76,146 @@ model CarpoolInvite {
     @@index([carpoolId])
     @@index([userId])
     @@map("carpool_invites")
+}
+
+model CarpoolRound {
+    id String @id @default(uuid())
+
+    carpoolId String
+    carpool   Carpool @relation(fields: [carpoolId], references: [id], onDelete: Cascade)
+
+    startAt DateTime
+    endAt   DateTime
+
+    status String?
+
+    pickupChecklists              CarpoolRoundPickupChecklist[]
+    carpoolRoundDropoffChecklists CarpoolRoundDropoffChecklist[]
+
+    @@index([carpoolId])
+    @@index([startAt])
+    @@index([endAt])
+    @@map("carpool_rounds")
+}
+
+model CarpoolRoundPickupChecklist {
+    id String @id @default(uuid())
+
+    roundId String
+    round   CarpoolRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+    memberId String
+    member   CarpoolMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+    childId String
+    child   Child  @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+    // PENDING, PRESENT, ABSENT
+    status String?
+
+    @@map("carpool_round_pickup_checklists")
+}
+
+model CarpoolRoundDropoffChecklist {
+    id String @id @default(uuid())
+
+    roundId String
+    round   CarpoolRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+    memberId String
+    member   CarpoolMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+    childId String
+    child   Child  @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+    // PENDING, PRESENT, ABSENT
+    status String?
+
+    @@map("carpool_round_dropoff_checklists")
+}
+
+// enum CarpoolStatus {
+//     UPCOMING
+//     IN_PROGRESS
+//     COMPLETED
+//     CANCELLED
+// }
+
+/// Follows RFC 5545 (iCalendar RRULE) semantics for maximum compatibility.
+model CarpoolRepeatRule {
+    id        String  @id @default(uuid())
+    carpoolId String  @unique
+    carpool   Carpool @relation(fields: [carpoolId], references: [id], onDelete: Cascade)
+
+    // ── FREQUENCY (required) ──────────────────────────────────────────────
+    /// DAILY | WEEKLY | MONTHLY | YEARLY
+    frequency String
+
+    /// Repeat every N units.
+    /// interval=2 + WEEKLY = every 2 weeks
+    /// interval=3 + MONTHLY = every 3 months
+    interval Int @default(1)
+
+    // ── TIME OF DAY ───────────────────────────────────────────────────────
+    /// 24hr HH:MM in local timezone. e.g. "17:00" = 5pm, "09:30" = 9:30am
+    /// null = all-day / no specific time
+    timeOfDay String?
+
+    /// IANA timezone name. Always set this — never assume UTC for carpools.
+    /// e.g. "Asia/Dhaka" | "America/New_York" | "Europe/London"
+    timezone String @default("UTC")
+
+    // ── RANGE ─────────────────────────────────────────────────────────────
+    startDate DateTime
+
+    /// null = runs forever
+    endDate DateTime?
+
+    /// Stop after exactly N occurrences (alternative to endDate)
+    maxOccurrences Int?
+
+    // ── WEEKLY — which days ───────────────────────────────────────────────
+    /// RFC 5545 codes, comma-separated.
+    /// Values: MO TU WE TH FR SA SU
+    ///
+    /// Also works with DAILY as a filter — "daily but only on these days":
+    ///   Every day except Friday  → frequency=DAILY, byDay="MO,TU,WE,TH,SA,SU"
+    ///   Weekdays only            → frequency=DAILY, byDay="MO,TU,WE,TH,FR"
+    ///   Custom: Mon,Wed,Fri      → frequency=WEEKLY, byDay="MO,WE,FR"
+    byDay String?
+
+    // ── MONTHLY — specific dates ──────────────────────────────────────────
+    /// Comma-separated day numbers. Negative = count from end of month.
+    ///   "1,15"   → 1st and 15th
+    ///   "1,3,5"  → 1st, 3rd, 5th
+    ///   "-1"     → last day of month
+    ///   "-2"     → 2nd to last day
+    byMonthDay String?
+
+    // ── MONTHLY — Nth weekday of month ────────────────────────────────────
+    /// Format: {position}{day}
+    ///   "1MO"       → 1st Monday
+    ///   "2FR"       → 2nd Friday
+    ///   "-1FR"      → last Friday
+    ///   "2TU,4TU"   → 2nd and 4th Tuesday
+    bySetPos String?
+
+    // ── YEARLY — which months ─────────────────────────────────────────────
+    /// Comma-separated month numbers (1–12).
+    ///   "1,4,7,10"  → every quarter (Jan/Apr/Jul/Oct)
+    ///   "6,12"      → June and December
+    byMonth String?
+
+    // ── EXCEPTIONS & ONE-OFFS ─────────────────────────────────────────────
+    /// ISO dates to SKIP. e.g. "2025-12-25,2026-01-01"
+    exceptionDates String?
+
+    /// Extra one-off dates OUTSIDE the rule. e.g. "2025-11-28"
+    extraDates String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([carpoolId])
+    @@map("carpool_repeat_rules")
 }

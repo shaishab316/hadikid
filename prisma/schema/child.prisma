@@ -14,5 +14,8 @@ model Child {
 
     carpoolMembers CarpoolMember[] @relation("carpool_member_children")
 
+    carpoolRoundPickupChecklists  CarpoolRoundPickupChecklist[]
+    carpoolRoundDropoffChecklists CarpoolRoundDropoffChecklist[]
+
     @@map("children")
 }

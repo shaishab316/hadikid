@@ -6,6 +6,7 @@
     "dropoff",
     "hadikid",
     "Millis",
+    "RRULE",
     "STEPSIBLING",
     "zincrby",
     "zrevrange"
