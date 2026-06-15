@@ -1,73 +1,104 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// CONVERSATION
+// ─────────────────────────────────────────────────────────────────────────────
+
 model Conversation {
-  id String @id @default(uuid())
+    id   String  @id @default(uuid())
+    name String?
 
-  name String?
+    /// DIRECT | GROUP | SUPPORT
+    type String @default("DIRECT")
 
-  isGroup           Boolean @default(false)
-  isCustomerSupport Boolean @default(false)
+    imageId String?
+    image   Media?  @relation("conversation_image", fields: [imageId], references: [id], onDelete: SetNull)
 
-  imageId String?
-  image   Media?  @relation("conversation_image", fields: [imageId], references: [id], onDelete: SetNull)
+    participants  ConversationParticipant[]
+    messages      ConversationMessage[]     @relation("conversation_messages")
 
-  participants ConversationParticipant[]
-  messages     ConversationMessage[]     @relation("conversation_messages")
+    /// Denormalized for fast inbox rendering — update on every new message
+    lastMessageId String?              @unique
+    lastMessage   ConversationMessage? @relation("last_message", fields: [lastMessageId], references: [id], onDelete: SetNull)
 
-  lastMessageId String?              @unique
-  lastMessage   ConversationMessage? @relation("last_message", fields: [lastMessageId], references: [id], onDelete: SetNull)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([isGroup])
-  @@index([isCustomerSupport])
-  @@index([lastMessageId])
-  @@map("conversations")
+    @@index([type])
+    @@index([updatedAt])
+    @@map("conversations")
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONVERSATION PARTICIPANT
+// ─────────────────────────────────────────────────────────────────────────────
 
 model ConversationParticipant {
-  id String @id @default(uuid())
+    id String @id @default(uuid())
 
-  conversationId String
-  userId         Int
+    conversationId String
+    conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
-  role String
+    userId Int
+    user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  lastSeenMessageId String?
-  lastSeenMessage   ConversationMessage? @relation("last_seen_message", fields: [lastSeenMessageId], references: [id], onDelete: SetNull)
+    /// ADMIN | MEMBER
+    role String @default("MEMBER")
 
-  unreadMessagesCount Int @default(0)
+    lastSeenMessageId String?
+    lastSeenMessage   ConversationMessage? @relation("last_seen_message", fields: [lastSeenMessageId], references: [id], onDelete: SetNull)
 
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+    /// Denormalized unread count — increment on new message, reset on seen
+    unreadCount Int @default(0)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+    isMuted   Boolean   @default(false)
+    mutedUntil DateTime?
 
-  @@index([conversationId])
-  @@index([userId])
-  @@map("conversation_participants")
+    joinedAt  DateTime  @default(now())
+    leftAt    DateTime?
+
+    updatedAt DateTime @updatedAt
+
+    @@unique([conversationId, userId])
+    @@index([conversationId])
+    @@index([userId])
+    @@map("conversation_participants")
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CONVERSATION MESSAGE
+// ─────────────────────────────────────────────────────────────────────────────
+
 model ConversationMessage {
-  id String @id @default(uuid())
+    id String @id @default(uuid())
 
-  conversationId String
-  senderId       Int
+    conversationId String
+    conversation   Conversation @relation("conversation_messages", fields: [conversationId], references: [id], onDelete: Cascade)
 
-  content String?
+    senderId Int
+    sender   User @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
-  attachments Media[] @relation("message_attachments")
+    content String?
 
-  conversation Conversation @relation("conversation_messages", fields: [conversationId], references: [id], onDelete: Cascade)
-  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+    /// TEXT | IMAGE | VIDEO | AUDIO | FILE | SYSTEM
+    type String @default("TEXT")
 
-  lastSeenBy    ConversationParticipant[] @relation("last_seen_message")
-  lastMessageOf Conversation?             @relation("last_message")
+    attachments Media[] @relation("message_attachments")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+    /// For replies / threading
+    replyToId String?
+    replyTo   ConversationMessage?  @relation("message_replies", fields: [replyToId], references: [id], onDelete: SetNull)
+    replies   ConversationMessage[] @relation("message_replies")
 
-  @@index([conversationId])
-  @@index([senderId])
-  @@map("conversation_messages")
+    isDeleted Boolean   @default(false)
+    deletedAt DateTime?
+
+    lastSeenBy    ConversationParticipant[] @relation("last_seen_message")
+    lastMessageOf Conversation?             @relation("last_message")
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([conversationId])
+    @@index([senderId])
+    @@index([conversationId, createdAt])
+    @@map("conversation_messages")
 }

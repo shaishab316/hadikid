@@ -1,3 +1,7 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// CONTACT REQUEST
+// ─────────────────────────────────────────────────────────────────────────────
+
 model ContactRequest {
     id String @id @default(uuid())
 
@@ -7,19 +11,27 @@ model ContactRequest {
     receiverId Int
     receiver   User @relation("contact_request_receiver", fields: [receiverId], references: [id], onDelete: Cascade)
 
-    blocked   Boolean   @default(false)
-    blockedAt DateTime?
+    /// PENDING | ACCEPTED | DECLINED | CANCELLED
+    status String @default("PENDING")
 
     message String?
+
+    /// When the receiver responded
+    respondedAt DateTime?
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
+    @@unique([senderId, receiverId])
     @@index([senderId])
     @@index([receiverId])
-    @@index([blocked])
+    @@index([status])
     @@map("contact_requests")
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONTACT  (confirmed mutual connection)
+// ─────────────────────────────────────────────────────────────────────────────
 
 model Contact {
     id String @id @default(uuid())
@@ -30,8 +42,15 @@ model Contact {
     userId2 Int
     user2   User @relation("contacts2", fields: [userId2], references: [id], onDelete: Cascade)
 
+    /// Custom nickname user1 gave to user2
     alias1 String?
+    /// Custom nickname user2 gave to user1
     alias2 String?
+
+    /// True if either user has blocked the other
+    isBlocked   Boolean   @default(false)
+    blockedBy   Int?      // userId who initiated the block
+    blockedAt   DateTime?
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -39,5 +58,6 @@ model Contact {
     @@unique([userId1, userId2])
     @@index([userId1])
     @@index([userId2])
+    @@index([isBlocked])
     @@map("contacts")
 }

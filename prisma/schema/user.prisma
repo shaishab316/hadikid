@@ -1,126 +1,130 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// USER
+// ─────────────────────────────────────────────────────────────────────────────
+
 model User {
-  id Int @id @default(autoincrement())
+    id Int @id @default(autoincrement())
 
-  slug String? // u-00000{id}
+    /// Auto-generated public slug. e.g. "u-000001"
+    slug String? @unique
 
-  name String?
+    name  String?
+    email String? @unique
+    phone String? @unique
 
-  email String? @unique
+    /// MALE | FEMALE | OTHER
+    gender String?
+    dob    DateTime?
 
-  phone String? @unique
+    emergencyPhone String?
 
-  gender String?
+    /// Publicly visible contact info (shown on profile)
+    publicPhone String?
+    publicEmail String?
 
-  dob DateTime?
+    profilePictureId String?
+    profilePicture   Media?  @relation("profile_pictures", fields: [profilePictureId], references: [id], onDelete: SetNull)
 
-  location Location?
+    // ── Flags ─────────────────────────────────────────────────────────────
+    /// ACTIVE | SUSPENDED | BANNED | PENDING
+    status String @default("ACTIVE")
 
-  emergencyPhone String?
+    isEmailVerified Boolean @default(false)
+    isPhoneVerified Boolean @default(false)
+    isFaceVerified  Boolean @default(false)
 
-  publicPhone String?
+    isOnline     Boolean  @default(false)
+    lastOnlineAt DateTime @default(now())
 
-  publicEmail String?
+    // ── Rating (denormalized for fast reads) ──────────────────────────────
+    rating      Decimal @default(0.0) @db.Decimal(3, 2)
+    ratingCount Int     @default(0)
 
-  profilePictureId String?
-  profilePicture   Media?  @relation("profile_pictures", fields: [profilePictureId], references: [id], onDelete: SetNull)
+    // ── Relations ─────────────────────────────────────────────────────────
+    auth   Authentication?
+    roles  UserRoleMapping[]
+    wallet Wallet?
 
-  //======= Flags ============
+    location          Location?
+    locationHistories LocationHistory[]
+    savedLocations    SavedLocation[]
 
-  status          String?
-  isEmailVerified Boolean?  @default(false)
-  isPhoneVerified Boolean?  @default(false)
-  isFaceVerified  Boolean?  @default(false)
-  isOnline        Boolean?  @default(false)
-  lastOnlineAt    DateTime? @default(now())
+    medias Media[]
 
-  rating      Decimal? @default(0.0) @db.Decimal(2, 1)
-  ratingCount Int?     @default(0)
+    devices       UserDevice[]
+    notifications Notification[]
 
-  //===============================
+    conversationParticipants ConversationParticipant[]
+    conversationMessages     ConversationMessage[]
 
-  roles UserRoleMapping[]
+    reviewsGiven    Review[] @relation("review_reviewer")
+    reviewsReceived Review[] @relation("review_subject")
 
-  auth Authentication?
+    children Child[]
 
-  locationHistories LocationHistory[]
+    driverCarpools Carpool[]       @relation("carpool_driver")
+    carpoolMembers CarpoolMember[]
+    carpoolInvites CarpoolInvite[]
 
-  savedLocations SavedLocation[]
+    contactRequestsSent     ContactRequest[] @relation("contact_request_sender")
+    contactRequestsReceived ContactRequest[] @relation("contact_request_receiver")
+    contacts1               Contact[]        @relation("contacts1")
+    contacts2               Contact[]        @relation("contacts2")
 
-  conversationParticipants ConversationParticipant[]
-  conversationMessages     ConversationMessage[]
-
-  medias Media[]
-
-  wallet Wallet?
-
-  reviewsBy Review[] @relation("reviewer")
-
-  notifications Notification[]
-  devices       UserDevice[]
-
-  driverCarpools Carpool[] @relation("carpool_driver")
-
-  carpoolMembers CarpoolMember[]
-
-  contactRequestsSender   ContactRequest[] @relation("contact_request_sender")
-  contactRequestsReceiver ContactRequest[] @relation("contact_request_receiver")
-  contacts1               Contact[]        @relation("contacts1")
-  contacts2               Contact[]        @relation("contacts2")
-  carpoolInvites          CarpoolInvite[]
-
-  @@index([slug])
-  @@index([email])
-  @@index([phone])
-  @@index([status])
-  @@index([isEmailVerified])
-  @@index([isPhoneVerified])
-  @@index([isOnline])
-  @@index([lastOnlineAt])
-  @@map("users")
+    @@index([slug])
+    @@index([email])
+    @@index([phone])
+    @@index([status])
+    @@index([isOnline])
+    @@index([lastOnlineAt])
+    @@map("users")
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTHENTICATION
+// ─────────────────────────────────────────────────────────────────────────────
 
 model Authentication {
-  id String @id @default(uuid())
+    id     String @id @default(uuid())
+    userId Int    @unique
 
-  userId Int @unique
+    passwordHash String?
 
-  passwordHash String?
+    lastLoginAt          DateTime?
+    lastPasswordChangeAt DateTime?
 
-  lastLoginAt          DateTime?
-  lastPasswordChangeAt DateTime?
+    wrongPasswordAttempts Int @default(0)
+    lockedUntil           DateTime? // null = not locked
 
-  wrongPasswordAttempts Int? @default(0)
+    canLogin           Boolean @default(true)
+    mustChangePassword Boolean @default(false)
 
-  canLogin Boolean? @default(true)
+    twoFactorEnabled Boolean @default(false)
+    twoFactorSecret  String?
 
-  canChangePassword Boolean? @default(true)
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  mustChangePassword Boolean? @default(false)
-
-  twoFactorEnabled Boolean? @default(false)
-
-  twoFactorSecret String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([wrongPasswordAttempts])
-  @@index([lastLoginAt])
-  @@index([lastPasswordChangeAt])
-  @@index([canLogin])
-  @@index([mustChangePassword])
-  @@index([twoFactorEnabled])
-  @@map("authentications")
+    @@index([canLogin])
+    @@index([lockedUntil])
+    @@index([lastLoginAt])
+    @@map("authentications")
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ROLES
+// ─────────────────────────────────────────────────────────────────────────────
+
 model UserRoleMapping {
-  id String @id @default(uuid())
+    id     String @id @default(uuid())
+    userId Int
 
-  userId Int
-  role   String
+    /// ADMIN | DRIVER | PARENT | SUPPORT
+    role String
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, role])
-  @@index([userId])
-  @@map("user_role_mappings")
+    @@unique([userId, role])
+    @@index([userId])
+    @@index([role])
+    @@map("user_role_mappings")
 }

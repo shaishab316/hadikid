@@ -1,22 +1,33 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// REVIEW
+// ─────────────────────────────────────────────────────────────────────────────
+
 model Review {
-  id String @id @default(uuid())
+    id String @id @default(uuid())
 
-  rating Decimal @db.Decimal(2, 1)
+    /// DRIVER | PARENT | CARPOOL
+    type String
 
-  comment String?
+    rating  Decimal @db.Decimal(2, 1)
+    comment String?
 
-  metadata Json?
+    reviewerId Int?
+    reviewer   User? @relation("review_reviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
 
-  type String?
+    /// The user being reviewed (null for carpool reviews)
+    subjectId Int?
+    subject   User? @relation("review_subject", fields: [subjectId], references: [id], onDelete: SetNull)
 
-  reviewerId Int?
-  reviewer   User? @relation("reviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+    /// Optional: which carpool this review is about
+    carpoolId String?
 
-  @@index([reviewerId])
-  @@map("reviews")
+    metadata Json @default("{}")
+
+    createdAt DateTime @default(now())
+
+    @@index([reviewerId])
+    @@index([subjectId])
+    @@index([type])
+    @@index([carpoolId])
+    @@map("reviews")
 }
-
-// enum ReviewType {
-//   USER
-//   CARPOOL
-// }

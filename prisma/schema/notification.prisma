@@ -1,22 +1,66 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// NOTIFICATION
+// ─────────────────────────────────────────────────────────────────────────────
+
 model Notification {
-  id String @id @default(ulid())
+    id String @id @default(uuid())
 
-  title   String?
-  message String
+    userId Int
+    user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  isRead Boolean @default(false)
+    title   String?
+    message String
 
-  type String?
+    /// CARPOOL_INVITE | CARPOOL_ROUND_STARTED | CARPOOL_ROUND_COMPLETED
+    /// CONTACT_REQUEST | MESSAGE | SYSTEM | WALLET
+    type String
 
-  app String?
+    /// Deep-link target. e.g. "/carpool/abc123"
+    actionUrl String?
 
-  createdAt DateTime @default(now())
+    /// Arbitrary payload for the client
+    metadata Json @default("{}")
 
-  userId Int
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    isRead  Boolean   @default(false)
+    readAt  DateTime?
 
-  @@index([userId])
-  @@index([userId, isRead])
-  @@index([createdAt])
-  @@map("notifications")
+    createdAt DateTime @default(now())
+
+    @@index([userId])
+    @@index([userId, isRead])
+    @@index([type])
+    @@index([createdAt])
+    @@map("notifications")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// USER DEVICE  (push notification targets)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model UserDevice {
+    id String @id @default(uuid())
+
+    userId Int
+    user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    /// FCM | APNS | ONESIGNAL
+    provider String @default("ONESIGNAL")
+
+    /// The push token / player ID for this device
+    token String
+
+    /// ios | android | web
+    platform String?
+
+    deviceName String?
+
+    isActive Boolean @default(true)
+
+    lastSeenAt DateTime @default(now())
+    createdAt  DateTime @default(now())
+
+    @@unique([userId, token])
+    @@index([userId])
+    @@index([isActive])
+    @@map("user_devices")
 }
