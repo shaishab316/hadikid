@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -112,11 +113,13 @@ export class ConversationService {
     return this.mapConversation(
       {
         ...conversation,
-        participants: conversation.participants.map(({ user, role, unreadCount }: any) => ({
-          ...user,
-          role,
-          unreadCount,
-        })),
+        participants: conversation.participants.map(
+          ({ user, role, unreadCount }: any) => ({
+            ...user,
+            role,
+            unreadCount,
+          }),
+        ),
       },
       userId,
     );
@@ -197,6 +200,24 @@ export class ConversationService {
       targetConversationId,
       userId,
     );
+
+    if (conversation.type === 'DIRECT') {
+      const opponent = conversation.participants.find(
+        (p: any) => p.id !== userId,
+      );
+      if (opponent) {
+        const isBlocked = await this.conversationRepo.isBlocked(
+          userId,
+          opponent.id,
+        );
+
+        if (isBlocked) {
+          throw new ForbiddenException(
+            'Cannot send message. This contact is blocked.',
+          );
+        }
+      }
+    }
 
     const message = await this.conversationRepo.createMessage(
       targetConversationId,

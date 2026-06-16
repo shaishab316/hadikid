@@ -188,4 +188,23 @@ export class ConversationRepository {
       },
     });
   }
+
+  async isBlocked(userId1: number, userId2: number): Promise<boolean> {
+    const minId = Math.min(userId1, userId2);
+    const maxId = Math.max(userId1, userId2);
+
+    const contact = await this.prisma.contact.findUnique({
+      where: {
+        userId1_userId2: {
+          userId1: minId,
+          userId2: maxId,
+        },
+      },
+      select: {
+        isBlocked: true,
+      },
+    });
+
+    return contact?.isBlocked ?? false;
+  }
 }
