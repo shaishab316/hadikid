@@ -11,7 +11,7 @@ import { User } from '@prisma/client';
 import { resolveLocation } from '../address/address.constant';
 import { NotificationService } from '@/infra/notification/notification.service';
 import { UserRole, UserStatus } from '../user/user.constant';
-import { OtpReason } from './auth.constant';
+import { OTP_LENGTH, OtpReason } from './auth.constant';
 
 @Injectable()
 export class AuthService {
@@ -113,7 +113,7 @@ export class AuthService {
       return;
     }
 
-    const otp = generateOtp(6);
+    const otp = generateOtp(OTP_LENGTH);
 
     await this.authRepository.storeOtp(phone, otp, OtpReason.PASSWORD_RESET);
     this.logger.debug(`Password reset OTP stored for ${phone}`);

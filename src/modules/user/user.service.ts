@@ -11,7 +11,7 @@ import { comparePassword, generateOtp, hashPassword } from '@/common/helpers';
 import { AccountVerifyOtpDto } from './dto/account-verify-otp.dto';
 import { AuthRepository } from '../auth/repository/auth.repository';
 import { UserRole, UserStatus } from './user.constant';
-import { OtpReason } from '../auth/auth.constant';
+import { OTP_LENGTH, OtpReason } from '../auth/auth.constant';
 
 @Injectable()
 export class UserService {
@@ -94,7 +94,7 @@ export class UserService {
       role: UserRole.USER,
     });
 
-    const otp = generateOtp(6);
+    const otp = generateOtp(OTP_LENGTH);
 
     await this.authRepository.storeOtp(
       phone,
