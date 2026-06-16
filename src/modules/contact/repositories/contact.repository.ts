@@ -6,6 +6,7 @@ import {
   QueryContactRequestsDto,
   QueryContactsDto,
 } from '../dto/query-contact.dto';
+import { userSearchableFields } from '@/modules/user/user.constant';
 
 @Injectable()
 export class ContactRepository {
@@ -99,7 +100,9 @@ export class ContactRepository {
 
     if (search) {
       where.receiver = {
-        name: { contains: search, mode: 'insensitive' },
+        OR: userSearchableFields.map((field) => ({
+          [field]: { contains: search, mode: 'insensitive' },
+        })),
       };
     }
 

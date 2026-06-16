@@ -10,7 +10,7 @@ export const CreateContactRequestSchema = z.object({
   message: _.htmlString({
     field: 'message',
     maxLength: 5000,
-  }),
+  }).optional(),
 });
 
 export class CreateContactRequestDto extends createZodDto(

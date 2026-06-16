@@ -1,11 +1,11 @@
+import { sharedDtoSchema as _ } from '@/common/dto/sharedDtoSchema';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
 export const UpdateAliasSchema = z.object({
-  alias: z
-    .string()
-    .trim()
-    .max(100, "Alias can't exceed 100 characters")
+  alias: _.name({
+    field: 'alias',
+  })
     .nullable()
     .optional(),
 });

@@ -25,3 +25,5 @@ export const ContactRequestStatus = {
   DECLINED: 'DECLINED',
   CANCELLED: 'CANCELLED',
 } as const;
+
+export type ContactRequestStatusType = keyof typeof ContactRequestStatus;
