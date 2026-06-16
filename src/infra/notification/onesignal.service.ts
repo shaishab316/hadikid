@@ -39,13 +39,13 @@ export class OneSignalService implements INotificationService {
     try {
       const devices = await this.prisma.userDevice.findMany({
         where: { userId: { in: data.userIds } },
-        select: { oneSignalPlayerId: true },
+        select: { token: true },
       });
 
       this.logger.debug(`📱 Found ${devices.length} device(s) in database`);
 
       const player_ids = devices
-        .map((d) => d.oneSignalPlayerId)
+        .map((d) => d.token)
         .filter(Boolean) as string[];
 
       this.logger.debug(

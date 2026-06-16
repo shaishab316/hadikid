@@ -17,8 +17,7 @@ export class ConversationRepository {
     if (user1Id === user2Id) {
       return await this.prisma.conversation.findFirst({
         where: {
-          isGroup: false,
-          isCustomerSupport: false,
+          type: 'DIRECT',
           participants: {
             every: { userId: user1Id },
           },
@@ -29,8 +28,7 @@ export class ConversationRepository {
 
     return await this.prisma.conversation.findFirst({
       where: {
-        isGroup: false,
-        isCustomerSupport: false,
+        type: 'DIRECT',
         AND: [
           { participants: { some: { userId: user1Id } } },
           { participants: { some: { userId: user2Id } } },
@@ -42,15 +40,13 @@ export class ConversationRepository {
 
   async createConversation(data: {
     name?: string;
-    isGroup: boolean;
-    isCustomerSupport?: boolean;
+    type: 'DIRECT' | 'GROUP' | 'SUPPORT';
     participants: { userId: number; role: 'OWNER' | 'ADMIN' | 'MEMBER' }[];
   }) {
     return await this.prisma.conversation.create({
       data: {
         name: data.name,
-        isGroup: data.isGroup,
-        isCustomerSupport: data.isCustomerSupport ?? false,
+        type: data.type,
         participants: {
           create: data.participants.map((p) => ({
             userId: p.userId,
@@ -165,7 +161,7 @@ export class ConversationRepository {
           userId: { not: senderId },
         },
         data: {
-          unreadMessagesCount: {
+          unreadCount: {
             increment: 1,
           },
         },
@@ -186,7 +182,7 @@ export class ConversationRepository {
         userId,
       },
       data: {
-        unreadMessagesCount: 0,
+        unreadCount: 0,
         lastSeenMessageId: lastMessageId,
       },
     });

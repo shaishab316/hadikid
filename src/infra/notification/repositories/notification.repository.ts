@@ -18,13 +18,12 @@ export class NotificationRepository {
     userId: number,
     query: QueryNotificationsDto,
   ): Promise<[notifications: any[], total: number]> {
-    const { app, page, limit, search } = query;
+    const { page, limit, search } = query;
 
     const skip = (page - 1) * limit;
 
     const where: Prisma.NotificationWhereInput = {
       userId,
-      app,
     };
 
     if (search) {
@@ -71,7 +70,7 @@ export class NotificationRepository {
    */
   async deleteAllByUserId(userId: number, query: DeleteQueryNotificationDto) {
     return await this.prisma.notification.deleteMany({
-      where: { userId, app: query.app },
+      where: { userId },
     });
   }
 

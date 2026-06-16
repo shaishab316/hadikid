@@ -58,7 +58,7 @@ export class ConversationService {
       if (existing) return this.mapConversation(existing, userId);
 
       conversation = await this.conversationRepo.createConversation({
-        isGroup: false,
+        type: 'DIRECT',
         participants: [
           { userId, role: 'OWNER' as const },
           { userId: recipientId, role: 'MEMBER' as const },
@@ -71,7 +71,7 @@ export class ConversationService {
 
       conversation = await this.conversationRepo.createConversation({
         name,
-        isGroup: true,
+        type: 'GROUP',
         participants: [
           { userId, role: 'OWNER' as const },
           ...uniqueParticipantIds.map((id) => ({
@@ -170,7 +170,7 @@ export class ConversationService {
 
       if (!conversation) {
         conversation = await this.conversationRepo.createConversation({
-          isGroup: false,
+          type: 'DIRECT',
           participants: [
             { userId, role: 'OWNER' as const },
             ...(userId !== recipientId
@@ -239,8 +239,12 @@ export class ConversationService {
   }
 
   private mapConversation(conversation: any, currentUserId: number) {
-    if (conversation.isGroup) {
-      return conversation;
+    const isGroup = conversation.type === 'GROUP';
+    if (isGroup || conversation.type === 'SUPPORT') {
+      return {
+        ...conversation,
+        isGroup,
+      };
     }
 
     const opponent = conversation.participants.find((p: any) => {
@@ -264,6 +268,7 @@ export class ConversationService {
 
     return {
       ...conversation,
+      isGroup,
       name,
       image,
     };
