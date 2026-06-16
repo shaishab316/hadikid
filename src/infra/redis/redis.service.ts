@@ -23,6 +23,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleInit() {
+    if (this.client) {
+      return; // Singleton pattern
+    }
+
     const redisUrl = this.configService.get('REDIS_URL', { infer: true });
 
     // If Redis drops, this prevents the Node event loop from hanging forever.

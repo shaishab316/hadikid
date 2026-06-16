@@ -22,6 +22,7 @@ import { BasicAuthMiddleware } from './common/middlewares/basic-auth.middleware'
 import path from 'node:path';
 import { ParseJsonBodyInterceptor } from './common/interceptors/parse-json-body.interceptor';
 import { RedisIoAdapter } from './infra/socket/redis-io.adapter';
+import { RedisService } from './infra/redis/redis.service';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -136,13 +137,16 @@ async function bootstrap() {
   // shutdown hooks
   app.enableShutdownHooks();
 
-  // init — must be before redis adapter
-  await app.init();
+  // redis socket.io adapter — set up before app.init() so it is applied to gateways
+  const redisService = app.get(RedisService);
+  redisService.onModuleInit();
 
-  // redis socket.io adapter — after init so RedisService is ready
   const redisIoAdapter = new RedisIoAdapter(app);
   await redisIoAdapter.connectToRedis();
   app.useWebSocketAdapter(redisIoAdapter);
+
+  // init — must be after redis adapter setup
+  await app.init();
 
   const port = config.get('PORT', { infer: true });
   await app.listen(port);
