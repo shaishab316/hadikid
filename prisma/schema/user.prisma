@@ -93,7 +93,7 @@ model Authentication {
     lastLoginAt          DateTime?
     lastPasswordChangeAt DateTime?
 
-    wrongPasswordAttempts Int @default(0)
+    wrongPasswordAttempts Int       @default(0)
     lockedUntil           DateTime? // null = not locked
 
     canLogin           Boolean @default(true)
@@ -118,7 +118,7 @@ model UserRoleMapping {
     id     String @id @default(uuid())
     userId Int
 
-    /// ADMIN | DRIVER | PARENT | SUPPORT
+    /// UserRole
     role String
 
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)

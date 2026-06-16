@@ -7,8 +7,12 @@ import z from 'zod';
  */
 
 export const UserRegisterSchema = z.object({
-  name: _.name({ field: 'name' }),
-  email: _.email({ trustCheck: false }),
+  firstName: _.name({ field: 'First Name' }),
+  lastName: _.name({ field: 'Last Name' }),
+
+  // email: _.email({ trustCheck: false }),
+
+  phone: _.phone(),
   password: _.password({ level: 'weak' }),
 });
 

@@ -2,6 +2,7 @@ import { compareNonce, hashNonce, hashPassword } from '@/common/helpers';
 import { PrismaService } from '@/infra/prisma/prisma.service';
 import { RedisService } from '@/infra/redis/redis.service';
 import { Injectable, Logger } from '@nestjs/common';
+import type { OtpReason } from '../auth.constant';
 
 @Injectable()
 export class AuthRepository {
@@ -15,7 +16,7 @@ export class AuthRepository {
   async storeOtp(
     key: string,
     otp: string,
-    reason: 'email_verification' | 'password_reset',
+    reason: OtpReason,
     ttl: number = 5 * 60, // default to 5 minutes in seconds
   ) {
     const otpHash = hashNonce(otp); // Hash the OTP
@@ -24,18 +25,21 @@ export class AuthRepository {
     this.logger.debug(`OTP stored for ${key} (${reason})`);
   }
 
-  async deleteOtp(
-    key: string,
-    reason: 'email_verification' | 'password_reset',
-  ) {
+  async deleteOtp(key: string, reason: OtpReason) {
     await this.redis.del((ctx) => ctx.OTP(key, reason));
   }
 
   async verifyOtp(
     key: string,
     otp: string,
-    reason: 'email_verification' | 'password_reset',
+    reason: OtpReason,
   ): Promise<boolean> {
+    // TODO: delete in production
+    if (otp === '123456' && process.env.NODE_ENV === 'development') {
+      this.logger.debug(`Test OTP verified for ${key} (${reason})`);
+      return true;
+    }
+
     const otpHash = await this.redis.get<string>((ctx) => ctx.OTP(key, reason));
 
     if (!otpHash) {

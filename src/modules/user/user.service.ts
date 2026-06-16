@@ -13,6 +13,7 @@ import { AccountVerifyOtpDto } from './dto/account-verify-otp.dto';
 import { MailService } from '@/infra/mail/mail.service';
 import { AuthRepository } from '../auth/repository/auth.repository';
 import { UserRole, UserStatus } from './user.constant';
+import { OtpReason } from '../auth/auth.constant';
 
 @Injectable()
 export class UserService {
@@ -79,41 +80,42 @@ export class UserService {
   }
 
   async registerUser(dto: UserRegisterDto) {
-    const { email, name, password } = dto;
-    this.logger.debug(`User registration attempt for ${email}`);
+    const { phone, firstName, lastName, password } = dto;
+    this.logger.debug(`User registration attempt for ${phone}`);
 
-    const existingUser = await this.userRepository.findByEmail(email);
+    const existingUser = await this.userRepository.findByPhone(phone);
 
     if (existingUser) {
       throw new BadRequestException(
-        'A account with this email already exists, please log in instead',
+        'A account with this phone number already exists, please log in instead',
       );
     }
 
-    await this.userRepository.createTemporary(dto.email, {
-      name,
-      email,
+    await this.userRepository.createTemporary(dto.phone, {
+      name: `${firstName} ${lastName}`,
+      phone,
       passwordHash: await hashPassword(password),
       role: UserRole.USER,
     });
 
     const otp = generateOtp(6);
 
-    await this.authRepository.storeOtp(email, otp, 'email_verification');
+    await this.authRepository.storeOtp(
+      phone,
+      otp,
+      OtpReason.PHONE_VERIFICATION,
+    );
 
-    this.mail.sendMail({
-      email,
-      subject: 'Verify your account',
-      body: `Your OTP for account verification is: ${otp}`,
-    });
-    this.logger.debug(`Verification OTP sent to ${email}`);
+    // Todo: send otp via sms
+
+    this.logger.debug(`Verification OTP sent to ${phone}`);
   }
 
   async accountVerify(dto: AccountVerifyOtpDto) {
-    const { email, otp } = dto;
-    this.logger.debug(`Account verification attempt for ${email}`);
+    const { phone, otp } = dto;
+    this.logger.debug(`Account verification attempt for ${phone}`);
 
-    const existingUser = await this.userRepository.findByEmail(email);
+    const existingUser = await this.userRepository.findByPhone(phone);
 
     if (existingUser) {
       throw new BadRequestException(
@@ -122,18 +124,18 @@ export class UserService {
     }
 
     const isValid = await this.authRepository.verifyOtp(
-      email,
+      phone,
       otp,
-      'email_verification',
+      OtpReason.PHONE_VERIFICATION,
     );
 
     if (!isValid) {
       throw new BadRequestException('Invalid or expired OTP');
     }
 
-    await this.authRepository.deleteOtp(email, 'email_verification');
+    await this.authRepository.deleteOtp(phone, OtpReason.PHONE_VERIFICATION);
 
-    const tempUser = await this.userRepository.getTemporary(email);
+    const tempUser = await this.userRepository.getTemporary(phone);
 
     if (!tempUser) {
       throw new NotFoundException(
@@ -141,17 +143,17 @@ export class UserService {
       );
     }
 
-    await this.userRepository.deleteTemporary(email);
+    await this.userRepository.deleteTemporary(phone);
 
     switch (tempUser.role) {
       case UserRole.USER: {
-        const { email, name, passwordHash, role } = tempUser;
+        const { phone, name, passwordHash, role } = tempUser;
 
         await this.userRepository.create({
           name,
-          email,
+          phone,
 
-          isEmailVerified: true,
+          isPhoneVerified: true,
           status: UserStatus.ACTIVE,
 
           auth: {
@@ -170,7 +172,7 @@ export class UserService {
           },
         });
 
-        this.logger.log(`User account verified and created: ${email}`);
+        this.logger.log(`User account verified and created: ${phone}`);
         break;
       }
     }
