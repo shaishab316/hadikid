@@ -9,6 +9,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { UserRegisterDto } from './dto/register.user.dto';
 import { comparePassword, generateOtp, hashPassword } from '@/common/helpers';
 import { AccountVerifyOtpDto } from './dto/account-verify-otp.dto';
+import { ResendAccountVerifyOtpDto } from './dto/resend-account-verify-otp.dto';
 import { AuthRepository } from '../auth/repository/auth.repository';
 import { UserRole, UserStatus } from './user.constant';
 import { OTP_LENGTH, OtpReason } from '../auth/auth.constant';
@@ -178,5 +179,38 @@ export class UserService {
         break;
       }
     }
+  }
+
+  async resendAccountVerifyOtp(dto: ResendAccountVerifyOtpDto) {
+    const { phone } = dto;
+    this.logger.debug(`Account verification OTP resend attempt for ${phone}`);
+
+    const existingUser = await this.userRepository.findByPhone(phone);
+
+    if (existingUser) {
+      throw new BadRequestException(
+        'Account already verified, please log in instead',
+      );
+    }
+
+    const tempUser = await this.userRepository.getTemporary(phone);
+
+    if (!tempUser) {
+      throw new BadRequestException(
+        'No pending registration found for this phone number, please register first',
+      );
+    }
+
+    const otp = generateOtp(OTP_LENGTH);
+
+    await this.authRepository.storeOtp(
+      phone,
+      otp,
+      OtpReason.PHONE_VERIFICATION,
+    );
+
+    // TODO: send otp via sms
+
+    this.logger.debug(`Verification OTP resent to ${phone}`);
   }
 }

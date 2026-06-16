@@ -9,6 +9,7 @@ import { JwtGuard } from '@/common/guards/jwt.guard';
 import { UserRegisterDto } from './dto/register.user.dto';
 import { ApiResponse } from '@/common/types/api-response';
 import { AccountVerifyOtpDto } from './dto/account-verify-otp.dto';
+import { ResendAccountVerifyOtpDto } from './dto/resend-account-verify-otp.dto';
 
 @Controller('users')
 export class UserController {
@@ -62,6 +63,18 @@ export class UserController {
 
     return {
       message: 'Account verified successfully',
+    };
+  }
+
+  @Post('resend-account-verify-otp')
+  @StrictThrottle()
+  async resendAccountVerifyOtp(
+    @Body() dto: ResendAccountVerifyOtpDto,
+  ): Promise<ApiResponse> {
+    await this.userService.resendAccountVerifyOtp(dto);
+
+    return {
+      message: 'Verification OTP resent successfully',
     };
   }
 }
