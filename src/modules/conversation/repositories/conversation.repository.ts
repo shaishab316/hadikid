@@ -79,9 +79,10 @@ export class ConversationRepository {
     return [
       conversations.map(({ participants, ...chat }) => ({
         ...chat,
-        participants: participants.map(({ user, role }: any) => ({
+        participants: participants.map(({ user, role, unreadCount }: any) => ({
           ...user,
           role,
+          unreadCount,
         })),
       })),
       count,

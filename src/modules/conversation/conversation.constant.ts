@@ -29,7 +29,9 @@ export const ConversationInclude: Prisma.ConversationInclude = {
   },
   participants: {
     select: {
+      userId: true,
       role: true,
+      unreadCount: true,
       user: {
         select: {
           id: true,

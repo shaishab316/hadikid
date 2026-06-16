@@ -112,9 +112,10 @@ export class ConversationService {
     return this.mapConversation(
       {
         ...conversation,
-        participants: conversation.participants.map(({ user, role }: any) => ({
+        participants: conversation.participants.map(({ user, role, unreadCount }: any) => ({
           ...user,
           role,
+          unreadCount,
         })),
       },
       userId,
@@ -239,38 +240,37 @@ export class ConversationService {
   }
 
   private mapConversation(conversation: any, currentUserId: number) {
-    const isGroup = conversation.type === 'GROUP';
-    if (isGroup || conversation.type === 'SUPPORT') {
+    const participants = conversation.participants.map((p: any) => {
+      if (p.slug !== undefined || p.user === undefined) {
+        return p;
+      }
+      const { user, role, unreadCount } = p;
       return {
-        ...conversation,
-        isGroup,
+        ...user,
+        role,
+        unreadCount,
       };
-    }
-
-    const opponent = conversation.participants.find((p: any) => {
-      const pUserId = p.userId ?? p.id;
-      return pUserId !== currentUserId;
     });
-    const opponentName = opponent?.user?.name ?? opponent?.name;
-    const opponentImage =
-      opponent?.user?.profilePicture ?? opponent?.profilePicture;
 
-    const self = conversation.participants.find((p: any) => {
-      const pUserId = p.userId ?? p.id;
-      return pUserId === currentUserId;
-    });
-    const selfImage = self?.user?.profilePicture ?? self?.profilePicture;
+    const opponent = participants.find((p: any) => p.id !== currentUserId);
+    const opponentName = opponent?.name;
+    const opponentImage = opponent?.profilePicture;
+
+    const self = participants.find((p: any) => p.id === currentUserId);
+    const selfImage = self?.profilePicture;
 
     const name =
       conversation.name ?? opponentName ?? (self ? 'You' : 'Unknown');
 
     const image = conversation.image ?? opponentImage ?? selfImage ?? null;
+    const unreadCount = self?.unreadCount ?? 0;
 
     return {
       ...conversation,
-      isGroup,
+      participants,
       name,
       image,
+      unreadCount,
     };
   }
 }
