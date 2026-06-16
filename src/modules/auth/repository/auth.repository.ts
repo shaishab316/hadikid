@@ -3,6 +3,8 @@ import { PrismaService } from '@/infra/prisma/prisma.service';
 import { RedisService } from '@/infra/redis/redis.service';
 import { Injectable, Logger } from '@nestjs/common';
 import type { OtpReason } from '../auth.constant';
+import { ConfigService } from '@nestjs/config';
+import { Env } from '@/common/config/app.config';
 
 @Injectable()
 export class AuthRepository {
@@ -11,6 +13,7 @@ export class AuthRepository {
   constructor(
     private readonly redis: RedisService,
     private readonly prisma: PrismaService,
+    private readonly config: ConfigService<Env, true>,
   ) {}
 
   async storeOtp(
@@ -35,7 +38,10 @@ export class AuthRepository {
     reason: OtpReason,
   ): Promise<boolean> {
     // TODO: delete in production
-    if (otp === '123456' && process.env.NODE_ENV === 'development') {
+    if (
+      otp === this.config.get('TEST_OTP') &&
+      process.env.NODE_ENV === 'development'
+    ) {
       this.logger.debug(`Test OTP verified for ${key} (${reason})`);
       return true;
     }

@@ -126,7 +126,7 @@ const envSchema = z.object({
   TEST_OTP: z
     .string()
     .describe('A fixed OTP for testing purposes, do not use in production')
-    .default('123456'),
+    .default('1234'),
 
   LOKI_URL: z
     .url('LOKI_URL must be a valid URL')
