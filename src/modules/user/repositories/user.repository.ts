@@ -142,9 +142,30 @@ export class UserRepository {
     });
   }
 
-  async findByPhoneWithPassword(phone: string) {
+  async findByPhoneWithAuth(phone: string) {
     return await this.prisma.user.findUnique({
       where: { phone: phone },
+      include: {
+        auth: true,
+        roles: {
+          select: {
+            role: true,
+          },
+        },
+
+        profilePicture: {
+          select: {
+            id: true,
+            url: true,
+            bytes: true,
+            height: true,
+            width: true,
+            mimeType: true,
+            metadata: true,
+            type: true,
+          },
+        },
+      },
     });
   }
 

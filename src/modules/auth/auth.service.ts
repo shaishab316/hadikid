@@ -1,6 +1,5 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { AuthRepository } from './repository/auth.repository';
-import { MailService } from '@/infra/mail/mail.service';
 import { LoginDto } from './dto/login.dto';
 import { UserRepository } from '../user/repositories/user.repository';
 import { comparePassword, generateNonce, generateOtp } from '@/common/helpers';
@@ -12,6 +11,7 @@ import { User } from '@prisma/client';
 import { resolveLocation } from '../address/address.constant';
 import { NotificationService } from '@/infra/notification/notification.service';
 import { UserRole, UserStatus } from '../user/user.constant';
+import { OtpReason } from './auth.constant';
 
 @Injectable()
 export class AuthService {
@@ -20,16 +20,15 @@ export class AuthService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly authRepository: AuthRepository,
-    private readonly mail: MailService,
     private readonly jwtService: JwtService,
     private readonly notificationService: NotificationService,
   ) {}
 
   async login(dto: LoginDto) {
-    const { email, password, address } = dto;
-    this.logger.debug(`Login attempt for ${email}`);
+    const { phone, password, address } = dto;
+    this.logger.debug(`Login attempt for ${phone}`);
 
-    const user = await this.userRepository.findByEmailWithAuth(email);
+    const user = await this.userRepository.findByPhoneWithAuth(phone);
 
     if (!user) {
       throw new UnauthorizedException('Email or password is incorrect');
@@ -105,10 +104,10 @@ export class AuthService {
   }
 
   async forgotPassword(dto: ForgotPasswordDto) {
-    const { email } = dto;
-    this.logger.debug(`Forgot password request for ${email}`);
+    const { phone } = dto;
+    this.logger.debug(`Forgot password request for ${phone}`);
 
-    const user = await this.userRepository.findByEmailWithAuth(email);
+    const user = await this.userRepository.findByPhoneWithAuth(phone);
 
     if (!user) {
       return;
@@ -116,33 +115,35 @@ export class AuthService {
 
     const otp = generateOtp(6);
 
-    await this.authRepository.storeOtp(email, otp, 'password_reset');
-    this.logger.debug(`Password reset OTP stored for ${email}`);
+    await this.authRepository.storeOtp(phone, otp, OtpReason.PASSWORD_RESET);
+    this.logger.debug(`Password reset OTP stored for ${phone}`);
 
-    await this.mail.sendMail(
-      {
-        email,
-        subject: 'Your password reset code',
-        body: `Your password reset code is: ${otp}`,
-      },
-      {
-        attempts: 3,
-        backoff: { type: 'exponential', delay: 5000 },
-        removeOnComplete: true,
-        removeOnFail: { age: 15 * 60 }, //? 15 minutes
-      },
-    );
-    this.logger.log(`Password reset email queued for ${email}`);
+    // await this.mail.sendMail(
+    //   {
+    //     email,
+    //     subject: 'Your password reset code',
+    //     body: `Your password reset code is: ${otp}`,
+    //   },
+    //   {
+    //     attempts: 3,
+    //     backoff: { type: 'exponential', delay: 5000 },
+    //     removeOnComplete: true,
+    //     removeOnFail: { age: 15 * 60 }, //? 15 minutes
+    //   },
+    // );
+
+    // TODO: send phone otp sms
+    this.logger.log(`Password reset email queued for ${phone}`);
   }
 
   async resetPassword(dto: ResetPasswordDto) {
-    const { email, otp, newPassword } = dto;
-    this.logger.debug(`Password reset attempt for ${email}`);
+    const { phone, otp, newPassword } = dto;
+    this.logger.debug(`Password reset attempt for ${phone}`);
 
     const isValidOtp = await this.authRepository.verifyOtp(
-      email,
+      phone,
       otp,
-      'password_reset',
+      OtpReason.PASSWORD_RESET,
     );
 
     if (!isValidOtp) {
@@ -155,7 +156,7 @@ export class AuthService {
       return 0; // skip
     }
 
-    const user = await this.userRepository.findByEmailWithAuth(email);
+    const user = await this.userRepository.findByPhoneWithAuth(phone);
 
     if (!user) {
       throw new UnauthorizedException(
@@ -165,7 +166,7 @@ export class AuthService {
 
     await this.authRepository.resetPassword(user.id, newPassword);
 
-    await this.authRepository.deleteOtp(email, 'password_reset'); // revoke use once
+    await this.authRepository.deleteOtp(phone, OtpReason.PASSWORD_RESET); // revoke use once
 
     await this.notificationService.sendNotification({
       userIds: [user.id],

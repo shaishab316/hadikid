@@ -6,11 +6,9 @@ import {
 } from '@nestjs/common';
 import { UserRepository } from './repositories/user.repository';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { CloudinaryService } from '@/infra/upload/cloudinary.service';
 import { UserRegisterDto } from './dto/register.user.dto';
 import { comparePassword, generateOtp, hashPassword } from '@/common/helpers';
 import { AccountVerifyOtpDto } from './dto/account-verify-otp.dto';
-import { MailService } from '@/infra/mail/mail.service';
 import { AuthRepository } from '../auth/repository/auth.repository';
 import { UserRole, UserStatus } from './user.constant';
 import { OtpReason } from '../auth/auth.constant';
@@ -22,8 +20,6 @@ export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly authRepository: AuthRepository,
-    private readonly cloudinary: CloudinaryService,
-    private readonly mail: MailService,
   ) {}
 
   async getMe(userId: number) {
@@ -106,7 +102,13 @@ export class UserService {
       OtpReason.PHONE_VERIFICATION,
     );
 
-    // Todo: send otp via sms
+    // this.mail.sendMail({
+    //   email,
+    //   subject: 'Verify your account',
+    //   body: `Your OTP for account verification is: ${otp}`,
+    // });
+
+    // TODO: send otp via sms
 
     this.logger.debug(`Verification OTP sent to ${phone}`);
   }

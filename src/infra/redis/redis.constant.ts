@@ -1,16 +1,10 @@
 export const CACHE_KEY = {
-  RESPONSE: (key: string) => `response:${key}`,
+  RESPONSE: (key: string) => `hadikid:response:${key}`,
   USER: {
-    TEMPORARY: (identifier: string) => `user:temporary:${identifier}`,
+    TEMPORARY: (identifier: string) => `hadikid:user:temporary:${identifier}`,
   },
-  OTP: (key: string, reason: string) => `otp:${reason}:${key}`,
+  OTP: (key: string, reason: string) => `hadikid:otp:${reason}:${key}`,
   TOKEN: {
-    REFRESH: (userId: string) => `token:refresh:${userId}`,
-  },
-  FOOD: {
-    POPULAR: 'food:popular',
-  },
-  LOCK: {
-    PAY_RIDE: (rideId: string) => `lock:ride_payment:${rideId}`,
+    REFRESH: (userId: string) => `hadikid:token:refresh:${userId}`,
   },
 } as const;
