@@ -189,22 +189,35 @@ export class ConversationRepository {
     });
   }
 
-  async isBlocked(userId1: number, userId2: number): Promise<boolean> {
+  async findContactBetweenUsers(userId1: number, userId2: number) {
     const minId = Math.min(userId1, userId2);
     const maxId = Math.max(userId1, userId2);
-
-    const contact = await this.prisma.contact.findUnique({
+    return await this.prisma.contact.findUnique({
       where: {
         userId1_userId2: {
           userId1: minId,
           userId2: maxId,
         },
       },
+    });
+  }
+
+  async isBlocked(userId1: number, userId2: number): Promise<boolean> {
+    const contact = await this.findContactBetweenUsers(userId1, userId2);
+    return contact?.isBlocked ?? false;
+  }
+
+  async findUserContacts(userId: number) {
+    return await this.prisma.contact.findMany({
+      where: {
+        OR: [{ userId1: userId }, { userId2: userId }],
+      },
       select: {
-        isBlocked: true,
+        userId1: true,
+        userId2: true,
+        alias1: true,
+        alias2: true,
       },
     });
-
-    return contact?.isBlocked ?? false;
   }
 }

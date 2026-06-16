@@ -56,7 +56,7 @@ export class ConversationService {
         userId,
         recipientId,
       );
-      if (existing) return this.mapConversation(existing, userId);
+      if (existing) return await this.mapConversation(existing, userId);
 
       conversation = await this.conversationRepo.createConversation({
         type: 'DIRECT',
@@ -83,15 +83,16 @@ export class ConversationService {
       });
     }
 
-    uniqueParticipantIds.forEach((pId) => {
+    for (const pId of uniqueParticipantIds) {
+      const mapped = await this.mapConversation(conversation, pId);
       this.socketGateway.emit(
         `user:${pId}`,
         'conversation_created',
-        this.mapConversation(conversation, pId),
+        mapped,
       );
-    });
+    }
 
-    return this.mapConversation(conversation, userId);
+    return await this.mapConversation(conversation, userId);
   }
 
   async getConversations(userId: number, query: QueryConversationDto) {
@@ -99,7 +100,20 @@ export class ConversationService {
     const [conversations, total] =
       await this.conversationRepo.findUserConversations(userId, limit, page);
 
-    const mapped = conversations.map((c) => this.mapConversation(c, userId));
+    const contacts = await this.conversationRepo.findUserContacts(userId);
+    const aliasMap = new Map<number, string>();
+    contacts.forEach((c) => {
+      const isUser1 = c.userId1 === userId;
+      const opponentId = isUser1 ? c.userId2 : c.userId1;
+      const alias = isUser1 ? c.alias1 : c.alias2;
+      if (alias) {
+        aliasMap.set(opponentId, alias);
+      }
+    });
+
+    const mapped = await Promise.all(
+      conversations.map((c) => this.mapConversation(c, userId, aliasMap)),
+    );
     return { conversations: mapped, total };
   }
 
@@ -110,7 +124,7 @@ export class ConversationService {
         'Conversation not found or you are not a participant',
       );
     }
-    return this.mapConversation(
+    return await this.mapConversation(
       {
         ...conversation,
         participants: conversation.participants.map(
@@ -185,10 +199,11 @@ export class ConversationService {
 
         // Notify recipient of new conversation creation
         if (userId !== recipientId) {
+          const mapped = await this.mapConversation(conversation, recipientId);
           this.socketGateway.emit(
             `user:${recipientId}`,
             'conversation_created',
-            this.mapConversation(conversation, recipientId),
+            mapped,
           );
         }
       }
@@ -260,7 +275,11 @@ export class ConversationService {
     return { success: true };
   }
 
-  private mapConversation(conversation: any, currentUserId: number) {
+  private async mapConversation(
+    conversation: any,
+    currentUserId: number,
+    aliasMap?: Map<number, string>,
+  ) {
     const participants = conversation.participants.map((p: any) => {
       if (p.slug !== undefined || p.user === undefined) {
         return p;
@@ -274,7 +293,25 @@ export class ConversationService {
     });
 
     const opponent = participants.find((p: any) => p.id !== currentUserId);
-    const opponentName = opponent?.name;
+    
+    let opponentName = opponent?.name;
+    if (conversation.type === 'DIRECT' && opponent) {
+      let alias: string | undefined | null = aliasMap?.get(opponent.id);
+      if (alias === undefined) {
+        const contact = await this.conversationRepo.findContactBetweenUsers(
+          currentUserId,
+          opponent.id,
+        );
+        if (contact) {
+          alias =
+            contact.userId1 === currentUserId ? contact.alias1 : contact.alias2;
+        }
+      }
+      if (alias) {
+        opponentName = alias;
+      }
+    }
+
     const opponentImage = opponent?.profilePicture;
 
     const self = participants.find((p: any) => p.id === currentUserId);
