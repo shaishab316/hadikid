@@ -13,17 +13,6 @@ export const NotificationType = {
 };
 export type NotificationType = keyof typeof NotificationType;
 
-export const NotificationApp = {
-  MAIN: 'MAIN',
-
-  FOOD: 'FOOD',
-  RIDE: 'RIDE',
-  RIDER: 'RIDER',
-
-  //...more
-};
-export type NotificationApp = keyof typeof NotificationApp;
-
 export const NotificationSearchableFields = [
   'title',
   'message',

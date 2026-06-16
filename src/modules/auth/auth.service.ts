@@ -90,7 +90,6 @@ export class AuthService {
       title: 'Login Notification',
       message: 'You have successfully logged in to your account',
       type: 'INFO',
-      app: 'MAIN',
     });
 
     return {
@@ -173,7 +172,6 @@ export class AuthService {
       title: 'Password Reset Notification',
       message: 'You have successfully reset your password',
       type: 'INFO',
-      app: 'MAIN',
     });
 
     this.logger.log(`Password reset successfully for user ${user.id}`);

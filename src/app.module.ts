@@ -26,6 +26,7 @@ import { NotificationModule } from './infra/notification/notification.module';
 import { NOTIFICATION_QUEUE } from './infra/notification/notification.constants';
 import { ConversationModule } from './modules/conversation/conversation.module';
 import { ChildModule } from './modules/child/child.module';
+import { ContactModule } from './modules/contact/contact.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { ChildModule } from './modules/child/child.module';
     AddressModule,
     ConversationModule,
     ChildModule,
+    ContactModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: CustomThrottlerGuard },

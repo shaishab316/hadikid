@@ -1,10 +1,9 @@
-import { NotificationApp, NotificationType } from '../notification.constants';
+import { NotificationType } from '../notification.constants';
 
 export interface NotificationSendData {
   userIds: number[];
   message: string;
   title: string;
-  app: NotificationApp;
   type: NotificationType;
   id: string;
 }
@@ -18,5 +17,4 @@ export type NotificationData = {
   title: string;
   message: string;
   type: NotificationType;
-  app: NotificationApp;
 };
