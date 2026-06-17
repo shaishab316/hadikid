@@ -13,6 +13,7 @@ import {
 } from './dto/query-conversation.dto';
 import { SocketGateway } from '@/infra/socket/socket.gateway';
 import { UserRepository } from '../user/repositories/user.repository';
+import { ContactRepository } from '../contact/repositories/contact.repository';
 
 @Injectable()
 export class ConversationService {
@@ -20,6 +21,7 @@ export class ConversationService {
     private readonly conversationRepo: ConversationRepository,
     private readonly socketGateway: SocketGateway,
     private readonly userRepo: UserRepository,
+    private readonly contactRepo: ContactRepository,
   ) {}
 
   async createConversation(userId: number, dto: CreateConversationDto) {
@@ -85,11 +87,7 @@ export class ConversationService {
 
     for (const pId of uniqueParticipantIds) {
       const mapped = await this.mapConversation(conversation, pId);
-      this.socketGateway.emit(
-        `user:${pId}`,
-        'conversation_created',
-        mapped,
-      );
+      this.socketGateway.emit(`user:${pId}`, 'conversation_created', mapped);
     }
 
     return await this.mapConversation(conversation, userId);
@@ -100,7 +98,7 @@ export class ConversationService {
     const [conversations, total] =
       await this.conversationRepo.findUserConversations(userId, limit, page);
 
-    const contacts = await this.conversationRepo.findUserContacts(userId);
+    const contacts = await this.contactRepo.findUserContacts(userId);
     const aliasMap = new Map<number, string>();
     contacts.forEach((c) => {
       const isUser1 = c.userId1 === userId;
@@ -221,10 +219,7 @@ export class ConversationService {
         (p: any) => p.id !== userId,
       );
       if (opponent) {
-        const isBlocked = await this.conversationRepo.isBlocked(
-          userId,
-          opponent.id,
-        );
+        const isBlocked = await this.contactRepo.isBlocked(userId, opponent.id);
 
         if (isBlocked) {
           throw new ForbiddenException(
@@ -293,12 +288,12 @@ export class ConversationService {
     });
 
     const opponent = participants.find((p: any) => p.id !== currentUserId);
-    
+
     let opponentName = opponent?.name;
     if (conversation.type === 'DIRECT' && opponent) {
       let alias: string | undefined | null = aliasMap?.get(opponent.id);
       if (alias === undefined) {
-        const contact = await this.conversationRepo.findContactBetweenUsers(
+        const contact = await this.contactRepo.findContactBetweenUsers(
           currentUserId,
           opponent.id,
         );

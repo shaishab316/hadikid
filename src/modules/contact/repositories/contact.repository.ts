@@ -224,11 +224,19 @@ export class ContactRepository {
           OR: [
             {
               userId1: userId,
-              user2: { name: { contains: search, mode: 'insensitive' } },
+              user2: {
+                OR: userSearchableFields.map((field) => ({
+                  [field]: { contains: search, mode: 'insensitive' },
+                })),
+              },
             },
             {
               userId2: userId,
-              user1: { name: { contains: search, mode: 'insensitive' } },
+              user1: {
+                OR: userSearchableFields.map((field) => ({
+                  [field]: { contains: search, mode: 'insensitive' },
+                })),
+              },
             },
           ],
         },
@@ -374,5 +382,37 @@ export class ContactRepository {
     });
 
     return [usersWithDistance, total] as const;
+  }
+
+  async findContactBetweenUsersMinimal(userId1: number, userId2: number) {
+    const minId = Math.min(userId1, userId2);
+    const maxId = Math.max(userId1, userId2);
+    return await this.prisma.contact.findUnique({
+      where: {
+        userId1_userId2: {
+          userId1: minId,
+          userId2: maxId,
+        },
+      },
+    });
+  }
+
+  async isBlocked(userId1: number, userId2: number): Promise<boolean> {
+    const contact = await this.findContactBetweenUsersMinimal(userId1, userId2);
+    return contact?.isBlocked ?? false;
+  }
+
+  async findUserContacts(userId: number) {
+    return await this.prisma.contact.findMany({
+      where: {
+        OR: [{ userId1: userId }, { userId2: userId }],
+      },
+      select: {
+        userId1: true,
+        userId2: true,
+        alias1: true,
+        alias2: true,
+      },
+    });
   }
 }

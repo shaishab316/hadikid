@@ -9,4 +9,8 @@ export class ProfileService {
   async basicUserInfoEditById(userId: number, dto: BasicUserInfoEditDto) {
     return this.profileRepository.basicUserInfoEditById(userId, dto);
   }
+
+  async getUserProfileById(currentUserId: number, targetUserId: number) {
+    return this.profileRepository.getUserProfileById(currentUserId, targetUserId);
+  }
 }
