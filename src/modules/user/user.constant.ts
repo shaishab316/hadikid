@@ -22,12 +22,12 @@ export const UserSelect = {
     omit: LocationOmit,
   },
   emergencyPhone: true,
-  gender: true,
+  gender: false,
   isOnline: true,
   lastOnlineAt: true,
   rating: true,
   ratingCount: true,
-  status: true,
+  status: false,
 } as const satisfies Prisma.UserSelect;
 
 export const UserRole = {

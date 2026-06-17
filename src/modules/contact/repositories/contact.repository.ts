@@ -1,12 +1,19 @@
 import { PrismaService } from '@/infra/prisma/prisma.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ContactInclude, ContactRequestInclude } from '../contact.constant';
 import {
   QueryContactRequestsDto,
   QueryContactsDto,
 } from '../dto/query-contact.dto';
-import { userSearchableFields } from '@/modules/user/user.constant';
+import { QueryNearbyFamiliesDto } from '../dto/query-nearby.dto';
+import {
+  userSearchableFields,
+  UserSelect,
+  UserStatus,
+} from '@/modules/user/user.constant';
+import { LocationOmit } from '@/modules/address/address.constant';
+import { calculateDistanceInKm } from '@/common/helpers/calculateDistance';
 
 @Injectable()
 export class ContactRepository {
@@ -237,5 +244,134 @@ export class ContactRepository {
       }),
       this.prisma.contact.count({ where }),
     ]);
+  }
+
+  async findNearbyFamilies(
+    currentUserId: number,
+    query: QueryNearbyFamiliesDto,
+  ) {
+    const { limit, page, search } = query;
+
+    // 1. Find all active contact IDs to exclude them (including self)
+    const contacts = await this.prisma.contact.findMany({
+      where: {
+        OR: [{ userId1: currentUserId }, { userId2: currentUserId }],
+      },
+      select: {
+        userId1: true,
+        userId2: true,
+      },
+    });
+
+    const excludeUserIds = [
+      currentUserId,
+      ...contacts.map((c) =>
+        c.userId1 === currentUserId ? c.userId2 : c.userId1,
+      ),
+    ];
+
+    // 2. Fetch the current user's profile location
+    const currentUser = await this.prisma.user.findUnique({
+      where: { id: currentUserId },
+      select: {
+        location: {
+          select: {
+            h3IndexLevel5: true,
+            city: true,
+            latitude: true,
+            longitude: true,
+          },
+        },
+      },
+    });
+
+    if (!currentUser?.location) {
+      throw new BadRequestException(
+        'Please set your location first to find nearby families.',
+      );
+    }
+
+    const targetH3Index = currentUser.location.h3IndexLevel5;
+    const targetCity = currentUser.location.city;
+
+    // 3. Build where query based on matched location parameters
+    const orConditions: Prisma.LocationWhereInput[] = [];
+    if (targetH3Index) {
+      orConditions.push({ h3IndexLevel5: targetH3Index });
+    }
+    if (targetCity) {
+      orConditions.push({ city: { equals: targetCity, mode: 'insensitive' } });
+    }
+
+    if (orConditions.length === 0) {
+      throw new BadRequestException(
+        'Your location details are incomplete. Please login again or enable location permissions.',
+      );
+    }
+
+    const where: Prisma.UserWhereInput = {
+      id: { notIn: excludeUserIds },
+      status: UserStatus.ACTIVE,
+      location: {
+        OR: orConditions,
+      },
+    };
+
+    if (search) {
+      where.AND = [
+        {
+          OR: userSearchableFields.map((field) => ({
+            [field]: { contains: search, mode: 'insensitive' },
+          })),
+        },
+      ];
+    }
+
+    // 4. Return results and total count
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        take: limit,
+        skip: (page - 1) * limit,
+        orderBy: { lastOnlineAt: 'desc' },
+        select: {
+          ...UserSelect,
+          _count: {
+            select: {
+              children: true,
+              carpoolMembers: true,
+            },
+          },
+        },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    const usersWithDistance = users.map(({ _count, ...user }) => {
+      let distanceKm: number | null = null;
+      if (
+        currentUser.location?.latitude != null &&
+        currentUser.location?.longitude != null &&
+        user.location?.latitude != null &&
+        user.location?.longitude != null
+      ) {
+        const rawDistance = calculateDistanceInKm(
+          {
+            lat: currentUser.location.latitude,
+            lon: currentUser.location.longitude,
+          },
+          { lat: user.location.latitude, lon: user.location.longitude },
+        );
+        distanceKm = Math.round(rawDistance * 100) / 100;
+      }
+      return {
+        ...user,
+        childrenCount: _count.children,
+        carpoolCount: _count.carpoolMembers,
+        distanceKm,
+      };
+    });
+
+    return [usersWithDistance, total] as const;
   }
 }

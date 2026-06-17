@@ -15,6 +15,7 @@ import {
   QueryContactRequestsDto,
   QueryContactsDto,
 } from './dto/query-contact.dto';
+import { QueryNearbyFamiliesDto } from './dto/query-nearby.dto';
 
 @Injectable()
 export class ContactService {
@@ -268,6 +269,10 @@ export class ContactService {
     }
 
     return { success: true };
+  }
+
+  async getNearbyFamilies(userId: number, query: QueryNearbyFamiliesDto) {
+    return await this.contactRepo.findNearbyFamilies(userId, query);
   }
 
   private mapContact(contact: any, currentUserId: number) {

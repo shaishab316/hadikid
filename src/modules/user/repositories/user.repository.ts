@@ -4,6 +4,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { UnverifiedEntity } from '../interfaces/user.types';
 import { LocationOmit } from '@/modules/address/address.constant';
+import { imgSelect } from '@/modules/media/media.constant';
 
 @Injectable()
 export class UserRepository {
@@ -220,17 +221,9 @@ export class UserRepository {
             role: true,
           },
         },
+
         profilePicture: {
-          select: {
-            id: true,
-            url: true,
-            bytes: true,
-            height: true,
-            width: true,
-            mimeType: true,
-            metadata: true,
-            type: true,
-          },
+          select: imgSelect,
         },
 
         location: {

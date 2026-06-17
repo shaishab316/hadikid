@@ -20,6 +20,7 @@ import {
   QueryContactRequestsDto,
   QueryContactsDto,
 } from './dto/query-contact.dto';
+import { QueryNearbyFamiliesDto } from './dto/query-nearby.dto';
 
 @Controller('contacts')
 @UseGuards(JwtGuard)
@@ -110,6 +111,28 @@ export class ContactController {
 
     return {
       message: 'Contact request cancelled successfully',
+    };
+  }
+
+  @Get('nearby')
+  async getNearbyFamilies(
+    @CurrentUser('id') userId: number,
+    @Query() query: QueryNearbyFamiliesDto,
+  ): Promise<ApiResponse> {
+    const [families, total] = await this.contactService.getNearbyFamilies(
+      userId,
+      query,
+    );
+
+    return {
+      message: 'Nearby families retrieved successfully',
+      data: families,
+      pagination: {
+        total,
+        limit: query.limit,
+        page: query.page,
+        totalPages: Math.ceil(total / query.limit),
+      },
     };
   }
 
