@@ -24,7 +24,7 @@ export class UserNotificationService {
    */
   async markAsRead(notificationId: string, userId: number) {
     this.logger.debug(
-      `✅ Marking notification ${notificationId} as read for user ${userId}`,
+      `Marking notification ${notificationId} as read for user ${userId}`,
     );
 
     const notification = await this.notificationRepo.findByIdAndUserId(
@@ -34,7 +34,7 @@ export class UserNotificationService {
 
     if (!notification) {
       this.logger.warn(
-        `⚠️ Notification not found: ${notificationId} for user ${userId}`,
+        `@@@@@Notification not found: ${notificationId} for user ${userId}`,
       );
       throw new NotFoundException('Notification not found');
     }
@@ -42,7 +42,7 @@ export class UserNotificationService {
     const updated = await this.notificationRepo.markAsRead(notificationId);
 
     this.logger.debug(
-      `✅ Notification ${notificationId} marked as read for user ${userId}`,
+      `Notification ${notificationId} marked as read for user ${userId}`,
     );
 
     return updated;
@@ -53,7 +53,7 @@ export class UserNotificationService {
    */
   async deleteNotification(notificationId: string, userId: number) {
     this.logger.debug(
-      `🗑️ Deleting notification ${notificationId} for user ${userId}`,
+      `@@@@@Deleting notification ${notificationId} for user ${userId}`,
     );
 
     const notification = await this.notificationRepo.findByIdAndUserId(
@@ -63,7 +63,7 @@ export class UserNotificationService {
 
     if (!notification) {
       this.logger.warn(
-        `⚠️ Notification not found: ${notificationId} for user ${userId}`,
+        `@@@@@Notification not found: ${notificationId} for user ${userId}`,
       );
       throw new NotFoundException('Notification not found');
     }
@@ -71,7 +71,7 @@ export class UserNotificationService {
     const deleted = await this.notificationRepo.deleteOne(notificationId);
 
     this.logger.debug(
-      `🗑️ Notification ${notificationId} deleted for user ${userId}`,
+      `@@@@@Notification ${notificationId} deleted for user ${userId}`,
     );
 
     return deleted;
@@ -84,12 +84,12 @@ export class UserNotificationService {
     userId: number,
     query: DeleteQueryNotificationDto,
   ) {
-    this.logger.debug(`🗑️ Deleting all notifications for user ${userId}`);
+    this.logger.debug(`@@@@@Deleting all notifications for user ${userId}`);
 
     const result = await this.notificationRepo.deleteAllByUserId(userId, query);
 
     this.logger.debug(
-      `🗑️ Deleted ${result.count} notifications for user ${userId}`,
+      `@@@@@Deleted ${result.count} notifications for user ${userId}`,
     );
 
     return result;

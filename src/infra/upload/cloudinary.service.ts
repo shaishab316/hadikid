@@ -26,7 +26,7 @@ export class CloudinaryService {
     resourceType = 'auto',
   }: UploadOptions): Promise<UploadResult> {
     this.logger.log(
-      `📄 Uploading file: ${file.originalname} (${file.size} bytes) to folder: ${folder}`,
+      `Uploading file: ${file.originalname} (${file.size} bytes) to folder: ${folder}`,
     );
 
     const result = await new Promise<UploadApiResponse>((resolve, reject) => {
@@ -36,7 +36,7 @@ export class CloudinaryService {
           if (error || !result) {
             const errorMsg = error?.message ?? 'Upload failed';
             this.logger.error(
-              `❌ Upload failed for ${file.originalname}: ${errorMsg}`,
+              `Upload failed for ${file.originalname}: ${errorMsg}`,
             );
             return reject(new BadRequestException(errorMsg));
           }
@@ -47,14 +47,14 @@ export class CloudinaryService {
 
       Readable.from(file.buffer)
         .on('error', (error) => {
-          this.logger.error(`❌ Stream error during upload: ${error.message}`);
+          this.logger.error(`Stream error during upload: ${error.message}`);
           reject(new BadRequestException(`Stream error: ${error.message}`));
         })
         .pipe(uploadStream);
     });
 
     this.logger.log(
-      `✅ File uploaded successfully: ${result.secure_url} (ID: ${result.public_id})`,
+      `File uploaded successfully: ${result.secure_url} (ID: ${result.public_id})`,
     );
 
     return {
@@ -67,12 +67,12 @@ export class CloudinaryService {
   }
 
   async deleteFile(publicId: string): Promise<void> {
-    this.logger.log(`🗑️  Deleting file: ${publicId}`);
+    this.logger.log(`@@@@@ Deleting file: ${publicId}`);
     try {
       await cloudinary.uploader.destroy(publicId);
-      this.logger.log(`✅ File deleted: ${publicId}`);
+      this.logger.log(`File deleted: ${publicId}`);
     } catch (error) {
-      this.logger.error(`❌ File deletion failed for ${publicId}:`, error);
+      this.logger.error(`File deletion failed for ${publicId}:`, error);
       throw error;
     }
   }

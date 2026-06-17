@@ -54,12 +54,12 @@ export class NotificationProcessor extends WorkerHost {
 
       const duration = Date.now() - startTime;
       this.logger.log(
-        `✅ [Job: ${job.id}] Notification job completed successfully (${duration}ms)`,
+        `[Job: ${job.id}] Notification job completed successfully (${duration}ms)`,
       );
     } catch (error) {
       const duration = Date.now() - startTime;
       this.logger.error(
-        `❌ [Job: ${job.id}] Notification job failed after ${duration}ms - ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `[Job: ${job.id}] Notification job failed after ${duration}ms - ${error instanceof Error ? error.message : 'Unknown error'}`,
         {
           jobName: job.name,
           userIds: job.data.userIds,

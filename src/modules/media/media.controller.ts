@@ -64,7 +64,7 @@ export class MediaController {
     }
 
     this.logger.log(
-      `📸 Uploading ${files.images.length} image(s)${user ? ` by user ${user.id}` : '...'}`,
+      `Uploading ${files.images.length} image(s)${user ? ` by user ${user.id}` : '...'}`,
     );
 
     const images = await this.mediaService.uploadImages(files.images, user?.id);
@@ -91,9 +91,7 @@ export class MediaController {
       throw new BadRequestException('No video file provided');
     }
 
-    this.logger.log(
-      `🎥 Uploading video${user ? ` by user ${user.id}` : '...'}`,
-    );
+    this.logger.log(`Uploading video${user ? ` by user ${user.id}` : '...'}`);
 
     const video = await this.mediaService.uploadVideo(files.video[0], user?.id);
 

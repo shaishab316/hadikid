@@ -26,7 +26,7 @@ import { RedisService } from './infra/redis/redis.service';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  logger.log('🚀 Starting application bootstrap...');
+  logger.log('Starting application bootstrap...');
 
   const isDev = process.env.NODE_ENV === 'development';
 
@@ -152,12 +152,12 @@ async function bootstrap() {
   await app.listen(port);
 
   const appUrl = await app.getUrl();
-  logger.log(`✨ Application is running on: ${chalk.blue(appUrl)}`);
+  logger.log(`Application is running on: ${chalk.blue(appUrl)}`);
 }
 
 bootstrap().catch((err) => {
   const logger = new Logger('Bootstrap');
-  logger.error('❌ Failed to start application', err);
+  logger.error('Failed to start application', err);
   console.error(err);
   process.exit(1);
 });

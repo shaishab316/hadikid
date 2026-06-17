@@ -27,7 +27,7 @@ export class OneSignalService implements INotificationService {
       },
       timeout: 5000,
     });
-    this.logger.debug('🔌 OneSignal client initialized');
+    this.logger.debug('OneSignal client initialized');
   }
 
   async sendNotification(data: NotificationSendData): Promise<void> {
@@ -48,19 +48,17 @@ export class OneSignalService implements INotificationService {
         .map((d) => d.token)
         .filter(Boolean) as string[];
 
-      this.logger.debug(
-        `✅ Filtered to ${player_ids.length} valid player ID(s)`,
-      );
+      this.logger.debug(`Filtered to ${player_ids.length} valid player ID(s)`);
 
       if (!player_ids.length) {
         this.logger.warn(
-          `⚠️  No valid OneSignal player IDs found for users: [${data.userIds.join(', ')}]`,
+          `@@@@@ No valid OneSignal player IDs found for users: [${data.userIds.join(', ')}]`,
         );
         return;
       }
 
       this.logger.debug(
-        `📤 Sending notification to ${player_ids.length} player(s): "${data.message}"`,
+        `Sending notification to ${player_ids.length} player(s): "${data.message}"`,
       );
 
       const response = await this.client.post('/notifications', {
@@ -72,14 +70,14 @@ export class OneSignalService implements INotificationService {
 
       const duration = Date.now() - startTime;
       this.logger.log(
-        `✨ Notification sent successfully to ${player_ids.length} player(s) - Response ID: ${response.data?.body?.id || 'N/A'} (${duration}ms)`,
+        `Notification sent successfully to ${player_ids.length} player(s) - Response ID: ${response.data?.body?.id || 'N/A'} (${duration}ms)`,
       );
     } catch (error) {
       const duration = Date.now() - startTime;
       const axiosError = error as AxiosError;
 
       this.logger.error(
-        `❌ Failed to send notification to ${data.userIds.length} user(s) (${duration}ms) - ${axiosError?.message || 'Unknown error'}`,
+        `Failed to send notification to ${data.userIds.length} user(s) (${duration}ms) - ${axiosError?.message || 'Unknown error'}`,
         {
           status: axiosError?.response?.status,
           data: axiosError?.response?.data,

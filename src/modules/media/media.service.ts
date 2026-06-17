@@ -49,11 +49,11 @@ export class MediaService {
         uploadResults.push(media);
 
         this.logger.log(
-          `✅ Image uploaded & saved (DB ID: ${media.id}): ${file.originalname} -> ${result.url}`,
+          `Image uploaded & saved (DB ID: ${media.id}): ${file.originalname} -> ${result.url}`,
         );
       } catch (error: any) {
         this.logger.error(
-          `❌ Failed to upload image ${file.originalname}:`,
+          `Failed to upload image ${file.originalname}:`,
           error,
         );
         throw new BadRequestException(
@@ -107,15 +107,12 @@ export class MediaService {
       });
 
       this.logger.log(
-        `✅ Video uploaded & saved (DB ID: ${media.id}): ${file.originalname} -> ${result.url}`,
+        `Video uploaded & saved (DB ID: ${media.id}): ${file.originalname} -> ${result.url}`,
       );
 
       return media;
     } catch (error: any) {
-      this.logger.error(
-        `❌ Failed to upload video ${file.originalname}:`,
-        error,
-      );
+      this.logger.error(`Failed to upload video ${file.originalname}:`, error);
       throw new BadRequestException(`Failed to upload video: ${error.message}`);
     }
   }
