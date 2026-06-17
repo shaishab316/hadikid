@@ -42,7 +42,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     if (!user) {
       this.logger.debug(`JWT validation failed: user ${payload.sub} not found`);
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException('Session Expired. Please login again');
     }
 
     const { lastPasswordChangeAt } = user.auth ?? {};

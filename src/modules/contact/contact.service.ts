@@ -36,7 +36,9 @@ export class ContactService {
 
     const receiver = await this.userRepo.findById(receiverId);
     if (!receiver) {
-      throw new NotFoundException('Receiver user not found');
+      throw new NotFoundException(
+        'Unable to send contact request. Please try again later',
+      );
     }
 
     const sender = await this.userRepo.findById(senderId);
