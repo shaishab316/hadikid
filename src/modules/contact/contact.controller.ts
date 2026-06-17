@@ -8,6 +8,7 @@ import {
   Post,
   Query,
   UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ContactService } from './contact.service';
 import { JwtGuard } from '@/common/guards/jwt.guard';

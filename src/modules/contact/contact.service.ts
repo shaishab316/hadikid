@@ -273,6 +273,54 @@ export class ContactService {
     return { success: true };
   }
 
+  async blockUser(userId: number, targetUserId: number) {
+    if (userId === targetUserId) {
+      throw new BadRequestException('You cannot block yourself');
+    }
+
+    let contact = await this.contactRepo.findContactBetweenUsers(
+      userId,
+      targetUserId,
+    );
+    if (!contact) {
+      contact = await this.contactRepo.createContact(userId, targetUserId);
+    }
+
+    if (contact.isBlocked) {
+      throw new BadRequestException('This user is already blocked');
+    }
+
+    const updated = await this.contactRepo.blockContact(contact.id, userId);
+    return this.mapContact(updated, userId);
+  }
+
+  async unblockUser(userId: number, targetUserId: number) {
+    if (userId === targetUserId) {
+      throw new BadRequestException('You cannot unblock yourself');
+    }
+
+    const contact = await this.contactRepo.findContactBetweenUsers(
+      userId,
+      targetUserId,
+    );
+    if (!contact) {
+      throw new NotFoundException('Contact connection not found');
+    }
+
+    if (!contact.isBlocked) {
+      throw new BadRequestException('This user is not blocked');
+    }
+
+    if (contact.blockedBy !== userId) {
+      throw new ForbiddenException(
+        'You did not initiate the block on this user',
+      );
+    }
+
+    const updated = await this.contactRepo.unblockContact(contact.id);
+    return this.mapContact(updated, userId);
+  }
+
   async getNearbyFamilies(userId: number, query: QueryNearbyFamiliesDto) {
     return await this.contactRepo.findNearbyFamilies(userId, query);
   }
