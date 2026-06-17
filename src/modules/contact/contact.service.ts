@@ -242,8 +242,7 @@ export class ContactService {
       );
     }
 
-    const updated = await this.contactRepo.unblockContact(contactId);
-    return this.mapContact(updated, userId);
+    await this.contactRepo.deleteContact(contactId);
   }
 
   async removeContact(userId: number, contactId: string) {
@@ -317,8 +316,7 @@ export class ContactService {
       );
     }
 
-    const updated = await this.contactRepo.unblockContact(contact.id);
-    return this.mapContact(updated, userId);
+    await this.contactRepo.deleteContact(contact.id);
   }
 
   async getNearbyFamilies(userId: number, query: QueryNearbyFamiliesDto) {
