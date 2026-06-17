@@ -8,6 +8,7 @@ import { JwtStrategy } from '@/common/strategies/jwt.strategy';
 import { AuthRepository } from './repository/auth.repository';
 import { AuthService } from './auth.service';
 import { UserRepository } from '../user/repositories/user.repository';
+import { ChildModule } from '../child/child.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { UserRepository } from '../user/repositories/user.repository';
       }),
     }),
     UserModule,
+    ChildModule,
   ],
   providers: [AuthService, JwtStrategy, AuthRepository, UserRepository],
   controllers: [AuthController],

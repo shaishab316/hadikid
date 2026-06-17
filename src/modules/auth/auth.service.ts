@@ -12,6 +12,7 @@ import { resolveLocation } from '../address/address.constant';
 import { NotificationService } from '@/infra/notification/notification.service';
 import { UserRole, UserStatus } from '../user/user.constant';
 import { OTP_LENGTH, OtpReason } from './auth.constant';
+import { ChildRepository } from '../child/repositories/child.repository';
 
 @Injectable()
 export class AuthService {
@@ -22,6 +23,7 @@ export class AuthService {
     private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService,
     private readonly notificationService: NotificationService,
+    private readonly childRepository: ChildRepository,
   ) {}
 
   async login(dto: LoginDto) {
@@ -93,6 +95,7 @@ export class AuthService {
 
     return {
       user: await this.userRepository.getMe(user.id),
+      hasChildren: await this.childRepository.hasChildren(user.id),
       tokens: {
         accessToken,
         accessTokenExpiresIn: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), //? 7 days in seconds

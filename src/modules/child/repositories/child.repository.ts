@@ -136,4 +136,13 @@ export class ChildRepository {
 
     return newSchool.id;
   }
+
+  async hasChildren(parentId: number) {
+    const child = await this.prisma.child.findFirst({
+      where: { parentId },
+      select: { id: true },
+    });
+
+    return !!child;
+  }
 }
