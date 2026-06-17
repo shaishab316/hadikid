@@ -13,7 +13,7 @@ export class LoggerMiddleware implements NestMiddleware {
 
     if (req.body && Object.keys(req.body).length) {
       this.logger.debug(
-        `📨 [${method}] ${originalUrl} -> Raw Body: \n${JSON.stringify(maskSensitiveFields(req.body), null, 2)}`,
+        `[${method}] ${originalUrl} -> Raw Body: \n${JSON.stringify(maskSensitiveFields(req.body), null, 2)}`,
       );
     }
 

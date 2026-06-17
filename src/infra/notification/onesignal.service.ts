@@ -33,7 +33,7 @@ export class OneSignalService implements INotificationService {
   async sendNotification(data: NotificationSendData): Promise<void> {
     const startTime = Date.now();
     this.logger.debug(
-      `📨 Fetching devices for ${data.userIds.length} user(s): [${data.userIds.join(', ')}]`,
+      `Fetching devices for ${data.userIds.length} user(s): [${data.userIds.join(', ')}]`,
     );
 
     try {
@@ -42,7 +42,7 @@ export class OneSignalService implements INotificationService {
         select: { token: true },
       });
 
-      this.logger.debug(`📱 Found ${devices.length} device(s) in database`);
+      this.logger.debug(`Found ${devices.length} device(s) in database`);
 
       const player_ids = devices
         .map((d) => d.token)

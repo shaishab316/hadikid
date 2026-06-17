@@ -26,12 +26,12 @@ export class NotificationProcessor extends WorkerHost {
   async process(job: Job<NotificationSendData>) {
     const startTime = Date.now();
     this.logger.debug(
-      `📨 [Job: ${job.id}] Processing notification job: ${job.name}`,
+      `[Job: ${job.id}] Processing notification job: ${job.name}`,
     );
 
     try {
       this.logger.debug(
-        `📨 [Job: ${job.id}] Sending notification to ${job.data.userIds.length} user(s)`,
+        `[Job: ${job.id}] Sending notification to ${job.data.userIds.length} user(s)`,
       );
 
       const alreadyProcessed = await this.notificationRepo.existsById(
