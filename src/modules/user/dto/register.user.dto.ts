@@ -9,9 +9,7 @@ import z from 'zod';
 export const UserRegisterSchema = z.object({
   firstName: _.name({ field: 'First Name' }),
   lastName: _.name({ field: 'Last Name' }),
-
-  // email: _.email({ trustCheck: false }),
-
+  email: _.email({ trustCheck: false }).optional(),
   phone: _.phone(),
   password: _.password({ level: 'weak' }),
 });

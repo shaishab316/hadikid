@@ -8,6 +8,7 @@ export type UnverifiedUser = {
   phone: string;
   passwordHash: string;
   role: typeof UserRole.USER;
+  email?: string;
 };
 
 export type UnverifiedEntity = UnverifiedUser;

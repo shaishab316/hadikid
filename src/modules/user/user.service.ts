@@ -13,6 +13,7 @@ import { ResendAccountVerifyOtpDto } from './dto/resend-account-verify-otp.dto';
 import { AuthRepository } from '../auth/repository/auth.repository';
 import { UserRole, UserStatus } from './user.constant';
 import { OTP_LENGTH, OtpReason } from '../auth/auth.constant';
+import { MailService } from '@/infra/mail/mail.service';
 
 @Injectable()
 export class UserService {
@@ -21,6 +22,7 @@ export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly authRepository: AuthRepository,
+    private readonly mailService: MailService,
   ) {}
 
   async getMe(userId: number) {
@@ -77,7 +79,7 @@ export class UserService {
   }
 
   async registerUser(dto: UserRegisterDto) {
-    const { phone, firstName, lastName, password } = dto;
+    const { phone, firstName, lastName, password, email } = dto;
     this.logger.debug(`User registration attempt for ${phone}`);
 
     const existingUser = await this.userRepository.findByPhone(phone);
@@ -93,6 +95,7 @@ export class UserService {
       phone,
       passwordHash: await hashPassword(password),
       role: UserRole.USER,
+      email,
     });
 
     const otp = generateOtp(OTP_LENGTH);
@@ -150,7 +153,7 @@ export class UserService {
 
     switch (tempUser.role) {
       case UserRole.USER: {
-        const { phone, name, passwordHash, role } = tempUser;
+        const { phone, name, passwordHash, role, email } = tempUser;
 
         await this.userRepository.create({
           name,
@@ -173,7 +176,17 @@ export class UserService {
               role,
             },
           },
+
+          publicEmail: email,
         });
+
+        if (email) {
+          await this.mailService.sendMail({
+            email,
+            subject: 'Account Verified - HadiKid',
+            body: `Hello ${name}! Your account has been verified successfully.`,
+          });
+        }
 
         this.logger.log(`User account verified and created: ${phone}`);
         break;
