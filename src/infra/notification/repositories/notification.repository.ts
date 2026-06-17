@@ -87,8 +87,24 @@ export class NotificationRepository {
   }
 
   async createMany(notifications: Prisma.NotificationCreateManyInput[]) {
+    const userIds = notifications.map((n) => n.userId);
+
+    const existingUsers = await this.prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true },
+    });
+
+    const validUserIds = new Set(existingUsers.map((u) => u.id));
+    const validNotifications = notifications.filter((n) =>
+      validUserIds.has(n.userId),
+    );
+
+    if (validNotifications.length === 0) {
+      return { count: 0 };
+    }
+
     return await this.prisma.notification.createMany({
-      data: notifications,
+      data: validNotifications,
     });
   }
 
