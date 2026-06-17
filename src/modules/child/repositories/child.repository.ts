@@ -98,12 +98,14 @@ export class ChildRepository {
     }
 
     if (schoolName !== undefined) {
-      if (schoolName) {
-        const schoolId = await this.findOrCreateSchoolByName(schoolName);
-        data.school = { connect: { id: schoolId } };
-      } else {
-        data.school = { disconnect: true };
-      }
+      data.school = schoolName
+        ? {
+            connectOrCreate: {
+              where: { name: schoolName },
+              create: { name: schoolName },
+            },
+          }
+        : { disconnect: true };
     }
 
     return await this.prisma.child.update({
@@ -119,22 +121,6 @@ export class ChildRepository {
     return await this.prisma.child.delete({
       where: { id },
     });
-  }
-
-  private async findOrCreateSchoolByName(name: string): Promise<string> {
-    const existingSchool = await this.prisma.school.findFirst({
-      where: { name: { equals: name, mode: 'insensitive' } },
-      select: { id: true },
-    });
-
-    if (existingSchool) return existingSchool.id;
-
-    const newSchool = await this.prisma.school.create({
-      data: { name },
-      select: { id: true },
-    });
-
-    return newSchool.id;
   }
 
   async hasChildren(parentId: number) {

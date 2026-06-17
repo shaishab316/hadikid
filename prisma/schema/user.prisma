@@ -45,6 +45,11 @@ model User {
     roles  UserRoleMapping[]
     wallet Wallet?
 
+    schoolId String?
+    school   School? @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+
+    bio String?
+
     location          Location?
     locationHistories LocationHistory[]
     savedLocations    SavedLocation[]

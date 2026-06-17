@@ -22,10 +22,11 @@ model School {
 
     isVerified Boolean @default(false)
 
-    children Child[]
-
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    parents  User[]
+    children Child[]
 
     @@index([locationId])
     @@map("schools")

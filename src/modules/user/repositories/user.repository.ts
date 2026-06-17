@@ -229,6 +229,27 @@ export class UserRepository {
         location: {
           omit: LocationOmit,
         },
+
+        // TODO: move this to school constant module
+        school: {
+          include: {
+            banner: {
+              select: imgSelect,
+            },
+            location: {
+              omit: LocationOmit,
+            },
+            photo: {
+              select: imgSelect,
+            },
+            _count: {
+              select: {
+                children: true,
+                parents: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -238,6 +259,14 @@ export class UserRepository {
 
     return {
       ...user,
+      school: user.school
+        ? {
+            ...user.school,
+            _count: undefined,
+            childrenCount: user.school?._count.children ?? 0,
+            parentsCount: user.school?._count.parents ?? 0,
+          }
+        : null,
       roles: user.roles.map((r) => r.role),
     };
   }
