@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Post, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 
@@ -75,6 +75,18 @@ export class UserController {
 
     return {
       message: 'Verification OTP resent successfully',
+    };
+  }
+
+  @Delete('me')
+  @UseGuards(JwtGuard)
+  async deleteAccount(
+    @CurrentUser('id') userId: number,
+  ): Promise<ApiResponse> {
+    await this.userService.deleteAccount(userId);
+
+    return {
+      message: 'Account deleted successfully',
     };
   }
 }

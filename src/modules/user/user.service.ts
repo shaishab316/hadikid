@@ -213,4 +213,10 @@ export class UserService {
 
     this.logger.debug(`Verification OTP resent to ${phone}`);
   }
+
+  async deleteAccount(userId: number) {
+    this.logger.log(`Deleting account for user ${userId}`);
+    await this.authRepository.revokeAllRefreshTokens(userId.toString());
+    await this.userRepository.delete(userId);
+  }
 }

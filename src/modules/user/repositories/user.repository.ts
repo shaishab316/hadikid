@@ -270,4 +270,10 @@ export class UserRepository {
       roles: user.roles.map((r) => r.role),
     };
   }
+
+  async delete(userId: number) {
+    return await this.prisma.user.delete({
+      where: { id: userId },
+    });
+  }
 }
