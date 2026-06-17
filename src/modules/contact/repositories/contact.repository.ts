@@ -215,6 +215,7 @@ export class ContactRepository {
 
     const where: Prisma.ContactWhereInput = {
       OR: [{ userId1: userId }, { userId2: userId }],
+      isBlocked: false,
     };
 
     if (search) {
