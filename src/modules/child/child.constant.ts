@@ -1,3 +1,6 @@
+import { Prisma } from '@prisma/client';
+import { imgSelect } from '../media/media.constant';
+
 export const ChildRelationship = {
   MOTHER: 'MOTHER',
   FATHER: 'FATHER',
@@ -28,4 +31,18 @@ export const ChildRelationship = {
   COACH: 'COACH',
   CASEWORKER: 'CASEWORKER',
   OTHER: 'OTHER',
+} as const;
+
+export type ChildRelationshipType = keyof typeof ChildRelationship;
+
+export const ChildInclude: Prisma.ChildInclude = {
+  photo: {
+    select: imgSelect,
+  },
+  school: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
 };

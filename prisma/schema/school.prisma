@@ -5,7 +5,7 @@
 model School {
     id String @id @default(uuid())
 
-    name String
+    name String @unique
 
     locationId String?
     location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
@@ -27,7 +27,6 @@ model School {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
-    @@index([name])
     @@index([locationId])
     @@map("schools")
 }
