@@ -7,16 +7,14 @@ model Carpool {
     title String?
     notes String?
 
-    /// ACTIVE | PAUSED | COMPLETED | CANCELLED
-    status String @default("ACTIVE")
+    status String
 
-    pickupId  String?
-    pickup    Location? @relation("carpool_pickup", fields: [pickupId], references: [id], onDelete: SetNull)
+    pickupId String?
+    pickup   Location? @relation("carpool_pickup", fields: [pickupId], references: [id], onDelete: SetNull)
 
     dropoffId String?
     dropoff   Location? @relation("carpool_dropoff", fields: [dropoffId], references: [id], onDelete: SetNull)
 
-    /// Real-time vehicle location (updated during active round)
     vehicleLocationId String?
     vehicleLocation   Location? @relation("carpool_vehicle_location", fields: [vehicleLocationId], references: [id], onDelete: SetNull)
 
@@ -54,16 +52,15 @@ model CarpoolMember {
     userId Int
     user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    /// DRIVER | PARENT | GUARDIAN
-    role String @default("PARENT")
+    role String
 
     children Child[] @relation("carpool_member_children")
 
     pickupChecklists  CarpoolRoundPickupChecklist[]
     dropoffChecklists CarpoolRoundDropoffChecklist[]
 
-    joinedAt  DateTime  @default(now())
-    leftAt    DateTime?
+    joinedAt DateTime  @default(now())
+    leftAt   DateTime?
 
     @@unique([carpoolId, userId])
     @@index([carpoolId])
@@ -85,7 +82,7 @@ model CarpoolInvite {
     user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     /// PENDING | ACCEPTED | DECLINED | CANCELLED
-    status String @default("PENDING")
+    status String
 
     message String?
 
@@ -115,7 +112,7 @@ model CarpoolRound {
     type String
 
     /// SCHEDULED | IN_PROGRESS | COMPLETED | CANCELLED
-    status String @default("SCHEDULED")
+    status String
 
     scheduledAt DateTime
     startedAt   DateTime?
@@ -140,8 +137,8 @@ model CarpoolRound {
 model CarpoolRoundPickupChecklist {
     id String @id @default(uuid())
 
-    roundId  String
-    round    CarpoolRound  @relation(fields: [roundId], references: [id], onDelete: Cascade)
+    roundId String
+    round   CarpoolRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
 
     memberId String
     member   CarpoolMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
@@ -150,7 +147,7 @@ model CarpoolRoundPickupChecklist {
     child   Child  @relation(fields: [childId], references: [id], onDelete: Cascade)
 
     /// PENDING | PRESENT | ABSENT
-    status String @default("PENDING")
+    status String
 
     checkedAt DateTime?
     note      String?
@@ -165,8 +162,8 @@ model CarpoolRoundPickupChecklist {
 model CarpoolRoundDropoffChecklist {
     id String @id @default(uuid())
 
-    roundId  String
-    round    CarpoolRound  @relation(fields: [roundId], references: [id], onDelete: Cascade)
+    roundId String
+    round   CarpoolRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
 
     memberId String
     member   CarpoolMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
@@ -175,7 +172,7 @@ model CarpoolRoundDropoffChecklist {
     child   Child  @relation(fields: [childId], references: [id], onDelete: Cascade)
 
     /// PENDING | PRESENT | ABSENT
-    status String @default("PENDING")
+    status String
 
     checkedAt DateTime?
     note      String?

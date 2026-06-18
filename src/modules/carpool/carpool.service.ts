@@ -11,12 +11,13 @@ export class CarpoolService {
       userId,
       dto.selectedChildrenIds,
     );
+
     if (!belong) {
       throw new BadRequestException(
         'Some selected children are invalid or do not belong to you',
       );
     }
+
     return this.carpoolRepo.createCarpool(userId, dto);
   }
 }
-

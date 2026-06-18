@@ -9,10 +9,10 @@ export const NOTIFICATION_SERVICE = Symbol('INotificationService');
 export const NotificationType = {
   INFO: 'INFO',
   WARNING: 'WARNING',
-  ERROR: 'ERROR',
   CONTACT_REQUEST: 'CONTACT_REQUEST',
   CARPOOL_REQUEST: 'CARPOOL_REQUEST',
   CARPOOL_UPDATED: 'CARPOOL_UPDATED',
+  DRIVER_UPDATED: 'DRIVER_UPDATED',
   MESSAGE: 'MESSAGE',
 };
 export type NotificationType = keyof typeof NotificationType;

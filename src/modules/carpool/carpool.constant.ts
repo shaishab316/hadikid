@@ -1,3 +1,6 @@
+import { omit } from 'node_modules/zod/v4/core/util.cjs';
+import { LocationOmit } from '../address/address.constant';
+
 export const Weekdays = {
   Saturday: 'Saturday',
   Sunday: 'Sunday',
@@ -9,6 +12,16 @@ export const Weekdays = {
 } as const;
 export type Weekdays = keyof typeof Weekdays;
 
+export const WeekdayMap = {
+  Saturday: 'SA',
+  Sunday: 'SU',
+  Monday: 'MO',
+  Tuesday: 'TU',
+  Wednesday: 'WE',
+  Thursday: 'TH',
+  Friday: 'FR',
+} as const;
+
 export const CarpoolRepeatFrequency = {
   DAILY: 'DAILY',
   ONCE: 'ONCE',
@@ -17,8 +30,12 @@ export const CarpoolRepeatFrequency = {
 export type CarpoolRepeatFrequency = keyof typeof CarpoolRepeatFrequency;
 
 export const CarpoolInclude = {
-  pickup: true,
-  dropoff: true,
+  pickup: {
+    omit: LocationOmit,
+  },
+  dropoff: {
+    omit: LocationOmit,
+  },
   repeatRule: true,
   members: {
     include: {
@@ -40,3 +57,18 @@ export const CarpoolInclude = {
   },
 };
 
+export const CarpoolRole = {
+  OWNER: 'OWNER',
+  MEMBER: 'MEMBER',
+} as const;
+
+export type CarpoolRole = keyof typeof CarpoolRole;
+
+export const CarpoolStatus = {
+  ACTIVE: 'ACTIVE',
+  PAUSED: 'PAUSED',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+} as const;
+
+export type CarpoolStatus = keyof typeof CarpoolStatus;
