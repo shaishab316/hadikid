@@ -27,15 +27,17 @@ export class ChildService {
     }
 
     if (child.parentId !== parentId) {
-      throw new ForbiddenException(
-        'You are not authorized to view this child',
-      );
+      throw new ForbiddenException('You are not authorized to view this child');
     }
 
     return child;
   }
 
-  async updateChildById(parentId: number, childId: string, dto: UpdateChildDto) {
+  async updateChildById(
+    parentId: number,
+    childId: string,
+    dto: UpdateChildDto,
+  ) {
     const child = await this.childRepo.findById(childId);
     if (!child) {
       throw new NotFoundException('Child not found');

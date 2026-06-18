@@ -25,7 +25,13 @@ const ImageUploadInterceptor = createFileUploadInterceptor({
       name: 'images',
       maxCount: 10,
       maxFileSize: 10 * 1024 * 1024, // 10 MB
-      allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+      allowedMimeTypes: [
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+        'image/gif',
+        'application/octet-stream',
+      ],
     },
   ],
 });
@@ -36,7 +42,12 @@ const VideoUploadInterceptor = createFileUploadInterceptor({
       name: 'video',
       maxCount: 1,
       maxFileSize: 100 * 1024 * 1024, // 100 MB
-      allowedMimeTypes: ['video/mp4', 'video/webm', 'video/quicktime'],
+      allowedMimeTypes: [
+        'video/mp4',
+        'video/webm',
+        'video/quicktime',
+        'application/octet-stream',
+      ],
     },
   ],
 });

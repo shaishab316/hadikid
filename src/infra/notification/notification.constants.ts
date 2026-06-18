@@ -10,6 +10,10 @@ export const NotificationType = {
   INFO: 'INFO',
   WARNING: 'WARNING',
   ERROR: 'ERROR',
+  CONTACT_REQUEST: 'CONTACT_REQUEST',
+  CARPOOL_REQUEST: 'CARPOOL_REQUEST',
+  CARPOOL_UPDATED: 'CARPOOL_UPDATED',
+  MESSAGE: 'MESSAGE',
 };
 export type NotificationType = keyof typeof NotificationType;
 

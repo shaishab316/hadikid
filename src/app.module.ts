@@ -27,6 +27,7 @@ import { NOTIFICATION_QUEUE } from './infra/notification/notification.constants'
 import { ConversationModule } from './modules/conversation/conversation.module';
 import { ChildModule } from './modules/child/child.module';
 import { ContactModule } from './modules/contact/contact.module';
+import { CarpoolModule } from './modules/carpool/carpool.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { ContactModule } from './modules/contact/contact.module';
     ConversationModule,
     ChildModule,
     ContactModule,
+    CarpoolModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: CustomThrottlerGuard },

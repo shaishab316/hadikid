@@ -24,11 +24,6 @@ export class ChildRepository {
           id: parentId,
         },
       },
-      photo: {
-        connect: {
-          id: photoId,
-        },
-      },
       grade,
       relationship,
     };
@@ -42,6 +37,14 @@ export class ChildRepository {
           create: {
             name: schoolName,
           },
+        },
+      };
+    }
+
+    if (photoId) {
+      data.photo = {
+        connect: {
+          id: photoId,
         },
       };
     }
