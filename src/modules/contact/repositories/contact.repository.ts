@@ -264,7 +264,10 @@ export class ContactRepository {
     // 1. Find all active contact IDs to exclude them (including self)
     const contacts = await this.prisma.contact.findMany({
       where: {
-        OR: [{ userId1: currentUserId }, { userId2: currentUserId }],
+        OR: [
+          { userId1: Number(currentUserId) },
+          { userId2: Number(currentUserId) },
+        ],
       },
       select: {
         userId1: true,
@@ -273,9 +276,11 @@ export class ContactRepository {
     });
 
     const excludeUserIds = [
-      currentUserId,
+      Number(currentUserId),
       ...contacts.map((c) =>
-        c.userId1 === currentUserId ? c.userId2 : c.userId1,
+        Number(c.userId1) === Number(currentUserId)
+          ? Number(c.userId2)
+          : Number(c.userId1),
       ),
     ];
 
@@ -321,9 +326,11 @@ export class ContactRepository {
     const where: Prisma.UserWhereInput = {
       id: { notIn: excludeUserIds },
       status: UserStatus.ACTIVE,
-      location: {
-        OR: orConditions,
-      },
+
+      // TODO: uncomment this filter
+      // location: {
+      //   OR: orConditions,
+      // },
     };
 
     if (search) {
@@ -345,16 +352,50 @@ export class ContactRepository {
         orderBy: { lastOnlineAt: 'desc' },
         select: {
           ...UserSelect,
+          isFaceVerified: true,
+          isPhoneVerified: true,
           _count: {
             select: {
               children: true,
               carpoolMembers: true,
             },
           },
+          school: {
+            select: {
+              name: true,
+            },
+          },
         },
       }),
       this.prisma.user.count({ where }),
     ]);
+
+    const userIds = users.map((u) => u.id);
+    const pendingRequests =
+      userIds.length > 0
+        ? await this.prisma.contactRequest.findMany({
+            where: {
+              status: 'PENDING',
+              OR: [
+                { senderId: currentUserId, receiverId: { in: userIds } },
+                { senderId: { in: userIds }, receiverId: currentUserId },
+              ],
+            },
+            select: {
+              senderId: true,
+              receiverId: true,
+            },
+          })
+        : [];
+
+    const pendingMap = new Map<number, 'SENT_PENDING' | 'RECEIVED_PENDING'>();
+    for (const req of pendingRequests) {
+      if (req.senderId === currentUserId) {
+        pendingMap.set(req.receiverId, 'SENT_PENDING');
+      } else {
+        pendingMap.set(req.senderId, 'RECEIVED_PENDING');
+      }
+    }
 
     const usersWithDistance = users.map(({ _count, ...user }) => {
       let distanceKm: number | null = null;
@@ -378,6 +419,7 @@ export class ContactRepository {
         childrenCount: _count.children,
         carpoolCount: _count.carpoolMembers,
         distanceKm,
+        contactRequestStatus: pendingMap.get(user.id) ?? null,
       };
     });
 

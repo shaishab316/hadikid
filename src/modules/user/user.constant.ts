@@ -13,11 +13,14 @@ export const UserSelect = {
   id: true,
   slug: true,
   name: true,
+  email: true,
   publicEmail: true,
+  phone: true,
   publicPhone: true,
   profilePicture: {
     select: imgSelect,
   },
+  bio: true,
   location: {
     omit: LocationOmit,
   },
