@@ -12,6 +12,7 @@ import * as winston from 'winston';
 import LokiTransport from 'winston-loki';
 import { MailWorkerModule } from '@/infra/mail/mail-worker.module';
 import { NotificationWorkerModule } from '@/infra/notification/notification-worker.module';
+import { CarpoolWorkerModule } from '@/modules/carpool/carpool-worker.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { NotificationWorkerModule } from '@/infra/notification/notification-work
     RedisModule,
     MailWorkerModule,
     NotificationWorkerModule,
+    CarpoolWorkerModule,
   ],
 })
 export class WorkerModule {}

@@ -19,12 +19,9 @@ export const CreateCarpoolSchema = z.object({
       endDate: _.date().optional(),
     })
     .refine(
-      (data) => {
-        return (
-          data.frequency !== CarpoolRepeatFrequency.CUSTOM ||
-          data.weekdays?.length
-        );
-      },
+      (data) =>
+        data.frequency !== CarpoolRepeatFrequency.CUSTOM ||
+        data.weekdays?.length,
       {
         message: 'Weekdays are required when frequency is CUSTOM',
         path: ['weekdays'],

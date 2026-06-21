@@ -3,7 +3,7 @@ import { imgSelect } from '../media/media.constant';
 import { LocationOmit } from '../address/address.constant';
 
 export const userSearchableFields = [
-  'id',
+  'slug',
   'email',
   'name',
   'phone',
