@@ -104,14 +104,9 @@ export class NotificationController {
   @Delete()
   @MediumThrottle()
   @HttpCode(HttpStatus.OK)
-  async deleteAllNotifications(
-    @CurrentUser('id') userId: number,
-    @Query() query: DeleteQueryNotificationDto,
-  ) {
-    const result = await this.notificationService.deleteAllNotifications(
-      userId,
-      query,
-    );
+  async deleteAllNotifications(@CurrentUser('id') userId: number) {
+    const result =
+      await this.notificationService.deleteAllNotifications(userId);
 
     return {
       message: 'All notifications deleted successfully',

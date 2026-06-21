@@ -79,13 +79,10 @@ export class UserNotificationService {
   /**
    * Delete all notifications for a user
    */
-  async deleteAllNotifications(
-    userId: number,
-    query: DeleteQueryNotificationDto,
-  ) {
+  async deleteAllNotifications(userId: number) {
     this.logger.debug(`@@@@@Deleting all notifications for user ${userId}`);
 
-    const result = await this.notificationRepo.deleteAllByUserId(userId, query);
+    const result = await this.notificationRepo.deleteAllByUserId(userId);
 
     this.logger.debug(
       `@@@@@Deleted ${result.count} notifications for user ${userId}`,
