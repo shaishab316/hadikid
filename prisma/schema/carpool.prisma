@@ -65,6 +65,9 @@ model CarpoolMember {
     joinedAt DateTime  @default(now())
     leftAt   DateTime?
 
+    createdAt DateTime? @default(now())
+    updatedAt DateTime? @updatedAt
+
     @@unique([carpoolId, userId])
     @@index([carpoolId])
     @@index([userId])
@@ -159,6 +162,9 @@ model CarpoolRoundPickupChecklist {
     checkedAt DateTime?
     note      String?
 
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
     @@unique([roundId, childId])
     @@index([roundId])
     @@index([memberId])
@@ -183,6 +189,9 @@ model CarpoolRoundDropoffChecklist {
 
     checkedAt DateTime?
     note      String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
     @@unique([roundId, childId])
     @@index([roundId])

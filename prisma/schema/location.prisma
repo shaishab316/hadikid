@@ -16,7 +16,8 @@ model Location {
 
   note String? // Additional notes about the location
 
-  updatedAt DateTime @updatedAt
+  createdAt DateTime? @default(now())
+  updatedAt DateTime  @updatedAt
 
   //============= other indexes =============
 
@@ -64,6 +65,9 @@ model LocationHistory {
   location Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
   recordedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([locationId])

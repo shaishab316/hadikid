@@ -23,7 +23,8 @@ model Review {
 
     metadata Json @default("{}")
 
-    createdAt DateTime @default(now())
+    createdAt DateTime  @default(now())
+    updatedAt DateTime? @updatedAt
 
     @@index([reviewerId])
     @@index([subjectId])

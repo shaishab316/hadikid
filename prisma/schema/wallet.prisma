@@ -8,7 +8,7 @@ model Wallet {
     userId Int  @unique
     user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    balance  Decimal @default(0) @db.Decimal(12, 2)
+    balance Decimal @default(0) @db.Decimal(12, 2)
 
     /// ISO 4217 currency code. e.g. "USD" | "BDT" | "GBP"
     currency String @default("USD")
@@ -54,7 +54,8 @@ model WalletTransaction {
     /// PENDING | COMPLETED | FAILED | REVERSED
     status String @default("COMPLETED")
 
-    createdAt DateTime @default(now())
+    createdAt DateTime  @default(now())
+    updatedAt DateTime? @updatedAt
 
     @@index([walletId])
     @@index([walletId, createdAt])
