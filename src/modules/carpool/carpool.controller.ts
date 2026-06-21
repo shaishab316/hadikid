@@ -46,6 +46,53 @@ export class CarpoolController {
     };
   }
 
+  @Get('invites')
+  async getIncomingInvites(
+    @CurrentUser('id') userId: number,
+    @Query() query: QueryDefaultDto,
+  ): Promise<ApiResponse> {
+    const [data, total] = await this.carpoolService.getIncomingInvites(
+      userId,
+      query,
+    );
+
+    return {
+      message: 'Incoming carpool invitations retrieved successfully',
+      data,
+      pagination: {
+        limit: query.limit,
+        page: query.page,
+        total,
+        totalPages: Math.ceil(total / query.limit),
+      },
+    };
+  }
+
+  @Post('invites/:carpoolId/accept')
+  async acceptInvite(
+    @CurrentUser('id') userId: number,
+    @Param('carpoolId') carpoolId: string,
+  ): Promise<ApiResponse> {
+    const data = await this.carpoolService.acceptInvite(userId, carpoolId);
+
+    return {
+      message: 'You have joined the carpool',
+      data,
+    };
+  }
+
+  @Delete('invites/:carpoolId')
+  async declineInvite(
+    @CurrentUser('id') userId: number,
+    @Param('carpoolId') carpoolId: string,
+  ): Promise<ApiResponse> {
+    await this.carpoolService.declineInvite(userId, carpoolId);
+
+    return {
+      message: 'Invitation declined',
+    };
+  }
+
   @Get(':carpoolId')
   async getCarpoolDetails(
     @CurrentUser('id') userId: number,
@@ -150,31 +197,6 @@ export class CarpoolController {
 
     return {
       message: 'Invitation withdrawn successfully',
-    };
-  }
-
-  @Post(':carpoolId/invites/accept')
-  async acceptInvite(
-    @CurrentUser('id') userId: number,
-    @Param('carpoolId') carpoolId: string,
-  ): Promise<ApiResponse> {
-    const data = await this.carpoolService.acceptInvite(userId, carpoolId);
-
-    return {
-      message: 'You have joined the carpool',
-      data,
-    };
-  }
-
-  @Post(':carpoolId/invites/decline')
-  async declineInvite(
-    @CurrentUser('id') userId: number,
-    @Param('carpoolId') carpoolId: string,
-  ): Promise<ApiResponse> {
-    await this.carpoolService.declineInvite(userId, carpoolId);
-
-    return {
-      message: 'Invitation declined',
     };
   }
 

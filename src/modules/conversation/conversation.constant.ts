@@ -57,3 +57,14 @@ export const ConversationParticipantRole = {
 
 export type ConversationParticipantRole =
   keyof typeof ConversationParticipantRole;
+
+export const ConversationMessageType = {
+  TEXT: 'TEXT',
+  IMAGE: 'IMAGE',
+  VIDEO: 'VIDEO',
+  AUDIO: 'AUDIO',
+  FILE: 'FILE',
+  SYSTEM: 'SYSTEM',
+} as const;
+
+export type ConversationMessageType = keyof typeof ConversationMessageType;

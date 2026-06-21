@@ -19,6 +19,7 @@ import { InviteMemberDto } from '../dto/invite-carpool.dto';
 import { UpdateChecklistDto } from '../dto/checklist-update.dto';
 import { QueryDefaultDto } from '@/common/dto/sharedDtoSchema';
 import { Prisma } from '@prisma/client';
+import { ConversationMessageType } from '@/modules/conversation/conversation.constant';
 
 @Injectable()
 export class CarpoolRepository {
@@ -64,6 +65,42 @@ export class CarpoolRepository {
         skip: (page - 1) * limit,
       }),
       this.prisma.carpool.count({ where }),
+    ]);
+  }
+
+  async getIncomingInvites(userId: number, query: QueryDefaultDto) {
+    const { limit, page, search } = query;
+
+    const where: Prisma.CarpoolInviteWhereInput = {
+      userId,
+      status: CarpoolInviteStatus.PENDING,
+      carpool: {
+        isDeleted: false,
+      },
+    };
+
+    if (search) {
+      where.carpool = {
+        isDeleted: false,
+        title: { contains: search, mode: 'insensitive' },
+      };
+    }
+
+    return await Promise.all([
+      this.prisma.carpoolInvite.findMany({
+        where,
+        include: {
+          carpool: {
+            include: CarpoolInclude,
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: limit,
+        skip: (page - 1) * limit,
+      }),
+      this.prisma.carpoolInvite.count({ where }),
     ]);
   }
 
@@ -240,9 +277,52 @@ export class CarpoolRepository {
         data: { status: CarpoolInviteStatus.ACCEPTED },
       });
 
-      return tx.carpoolMember.create({
+      const member = await tx.carpoolMember.create({
         data: { carpoolId, userId, role: CarpoolRole.MEMBER },
+        include: {
+          user: {
+            select: {
+              name: true,
+            },
+          },
+        },
       });
+
+      const carpool = await tx.carpool.findUnique({
+        where: { id: carpoolId },
+        select: { conversationId: true },
+      });
+
+      if (carpool?.conversationId) {
+        await tx.conversationParticipant.upsert({
+          where: {
+            conversationId_userId: {
+              conversationId: carpool.conversationId,
+              userId,
+            },
+          },
+          create: {
+            conversationId: carpool.conversationId,
+            userId,
+            role: 'MEMBER',
+          },
+          update: {
+            leftAt: null,
+            unreadCount: 0,
+          },
+        });
+
+        await tx.conversationMessage.create({
+          data: {
+            conversationId: carpool.conversationId,
+            senderId: userId,
+            type: ConversationMessageType.SYSTEM,
+            content: `'${member.user.name}' joined this conversation.`,
+          },
+        });
+      }
+
+      return member;
     });
   }
 

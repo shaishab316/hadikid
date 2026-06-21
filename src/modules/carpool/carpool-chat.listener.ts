@@ -7,6 +7,7 @@ import type {
   CarpoolInviteAcceptedEvent,
   CarpoolMemberLeftEvent,
 } from './carpool.interface';
+import { ConversationMessageType } from '../conversation/conversation.constant';
 
 @Injectable()
 export class CarpoolChatListener {
@@ -37,28 +38,8 @@ export class CarpoolChatListener {
   }
 
   @OnEvent(CarpoolEvent.INVITE_ACCEPTED)
-  async onMemberJoined({
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    carpoolId,
-    userId,
-    conversationId,
-  }: CarpoolInviteAcceptedEvent) {
+  async onMemberJoined({ userId, conversationId }: CarpoolInviteAcceptedEvent) {
     if (!conversationId) return;
-
-    await this.prisma.conversationParticipant.upsert({
-      where: { conversationId_userId: { conversationId, userId } },
-      create: { conversationId, userId, role: 'MEMBER' },
-      update: { leftAt: null },
-    });
-
-    await this.prisma.conversationMessage.create({
-      data: {
-        conversationId,
-        senderId: userId,
-        type: 'SYSTEM',
-        content: 'joined the group.',
-      },
-    });
 
     this.logger.log(`User ${userId} added to chat ${conversationId}`);
   }
@@ -76,7 +57,7 @@ export class CarpoolChatListener {
       data: {
         conversationId,
         senderId: userId,
-        type: 'SYSTEM',
+        type: ConversationMessageType.SYSTEM,
         content: 'left the group.',
       },
     });

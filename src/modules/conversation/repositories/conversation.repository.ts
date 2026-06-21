@@ -1,7 +1,11 @@
 import { PrismaService } from '@/infra/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { ConversationInclude, MessageInclude } from '../conversation.constant';
+import {
+  ConversationInclude,
+  ConversationMessageType,
+  MessageInclude,
+} from '../conversation.constant';
 
 @Injectable()
 export class ConversationRepository {
@@ -136,6 +140,7 @@ export class ConversationRepository {
           conversationId,
           senderId,
           content,
+          type: ConversationMessageType.TEXT,
           attachments:
             attachmentIds && attachmentIds.length > 0
               ? {
