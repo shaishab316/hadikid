@@ -34,6 +34,15 @@ export const UserSelect = {
   createdAt: true,
 } as const satisfies Prisma.UserSelect;
 
+export const UserMinimalSelect = {
+  id: true,
+  name: true,
+  phone: true,
+  profilePicture: {
+    select: imgSelect,
+  },
+} as const satisfies Prisma.UserSelect;
+
 export const UserRole = {
   SUPER_ADMIN: 'SUPER_ADMIN',
   ADMIN: 'ADMIN',

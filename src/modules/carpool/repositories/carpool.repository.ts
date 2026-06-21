@@ -5,6 +5,7 @@ import {
   CarpoolInclude,
   CarpoolInviteStatus,
   CarpoolRole,
+  CarpoolSearchableFields,
   CarpoolStatus,
   ChecklistStatus,
   RoundInclude,
@@ -16,6 +17,8 @@ import { CreateCarpoolDto } from '../dto/create-carpool.dto';
 import { UpdateCarpoolDto } from '../dto/update-carpool.dto';
 import { InviteMemberDto } from '../dto/invite-carpool.dto';
 import { UpdateChecklistDto } from '../dto/checklist-update.dto';
+import { QueryDefaultDto } from '@/common/dto/sharedDtoSchema';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class CarpoolRepository {
@@ -31,22 +34,37 @@ export class CarpoolRepository {
     });
   }
 
-  async getMyCarpools(userId: number) {
-    return this.prisma.carpool.findMany({
-      where: {
-        isDeleted: false,
-        members: {
-          some: {
-            userId,
-            leftAt: null,
-          },
+  async getMyCarpools(userId: number, query: QueryDefaultDto) {
+    const { limit, page, search } = query;
+
+    const where: Prisma.CarpoolWhereInput = {
+      isDeleted: false,
+      members: {
+        some: {
+          userId,
+          leftAt: null,
         },
       },
-      include: CarpoolInclude,
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    };
+
+    if (search) {
+      where.OR = CarpoolSearchableFields.map((field) => ({
+        [field]: { contains: search, mode: 'insensitive' },
+      }));
+    }
+
+    return await Promise.all([
+      this.prisma.carpool.findMany({
+        where,
+        include: CarpoolInclude,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: limit,
+        skip: (page - 1) * limit,
+      }),
+      this.prisma.carpool.count({ where }),
+    ]);
   }
 
   async verifyChildrenBelongToUser(userId: number, childrenIds: string[]) {

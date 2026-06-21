@@ -25,6 +25,7 @@ import { InviteMemberDto } from './dto/invite-carpool.dto';
 import { UpdateChecklistDto } from './dto/checklist-update.dto';
 import { UpdateVehicleLocationDto } from './dto/update-vehicle-location.dto';
 import { CACHE_KEY } from '@/infra/redis/redis.constant';
+import { QueryDefaultDto } from '@/common/dto/sharedDtoSchema';
 
 @Injectable()
 export class CarpoolService {
@@ -370,8 +371,8 @@ export class CarpoolService {
     });
   }
 
-  async getMyCarpools(userId: number) {
-    return this.carpoolRepository.getMyCarpools(userId);
+  async getMyCarpools(userId: number, query: QueryDefaultDto) {
+    return await this.carpoolRepository.getMyCarpools(userId, query);
   }
 
   async getCarpoolDetails(userId: number, carpoolId: string) {
@@ -448,10 +449,12 @@ export class CarpoolService {
       return;
     }
 
+    const timeStr = scheduledAt.toISOString().replace(/:/g, '-');
+
     const roundJob = await this.carpoolQueue.add(
       CarpoolJob.SCHEDULE_ROUND,
       { carpoolId, scheduledAt: scheduledAt.toISOString(), type },
-      { delay, jobId: `round:${carpoolId}:${scheduledAt.toISOString()}` },
+      { delay, jobId: `round-${carpoolId}-${timeStr}` },
     );
 
     const delay30 = delay - 30 * 60 * 1000;
@@ -468,7 +471,7 @@ export class CarpoolService {
         },
         {
           delay: delay30,
-          jobId: `reminder30:${carpoolId}:${scheduledAt.toISOString()}`,
+          jobId: `reminder30-${carpoolId}-${timeStr}`,
         },
       );
     }
@@ -487,7 +490,7 @@ export class CarpoolService {
         },
         {
           delay: delay15,
-          jobId: `reminder15:${carpoolId}:${scheduledAt.toISOString()}`,
+          jobId: `reminder15-${carpoolId}-${timeStr}`,
         },
       );
     }
@@ -509,8 +512,8 @@ export class CarpoolService {
   }
 
   private async cancelRoundJobs(roundId: string) {
-    const job30 = await this.carpoolQueue.getJob(`reminder30:${roundId}`);
-    const job15 = await this.carpoolQueue.getJob(`reminder15:${roundId}`);
+    const job30 = await this.carpoolQueue.getJob(`reminder30-${roundId}`);
+    const job15 = await this.carpoolQueue.getJob(`reminder15-${roundId}`);
     await job30?.remove();
     await job15?.remove();
   }

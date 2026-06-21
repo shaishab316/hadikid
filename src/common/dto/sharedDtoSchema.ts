@@ -324,3 +324,5 @@ export const QueryDefaultSchema = z.object({
     .max(255, 'Search must be at most 255 characters')
     .optional(),
 });
+
+export class QueryDefaultDto extends createZodDto(QueryDefaultSchema) {}

@@ -1,4 +1,12 @@
+import { Carpool, Prisma } from '@prisma/client';
 import { LocationOmit } from '../address/address.constant';
+import { imgSelect } from '../media/media.constant';
+import { UserMinimalSelect } from '../user/user.constant';
+
+export const CarpoolSearchableFields = [
+  'title',
+  'notes',
+] as const satisfies ReadonlyArray<keyof Carpool>;
 
 export const Weekdays = {
   Saturday: 'Saturday',
@@ -108,7 +116,46 @@ export const CarpoolInclude = {
       children: { select: { id: true, name: true } },
     },
   },
-} as const;
+  rounds: {
+    where: {
+      status: RoundStatus.SCHEDULED,
+    },
+    omit: {
+      carpoolId: true,
+    },
+    include: {
+      driver: {
+        select: UserMinimalSelect,
+      },
+      dropoffChecklists: {
+        select: {
+          member: {
+            select: {
+              user: {
+                select: UserMinimalSelect,
+              },
+            },
+          },
+          status: true,
+          note: true,
+        },
+      },
+      pickupChecklists: {
+        select: {
+          member: {
+            select: {
+              user: {
+                select: UserMinimalSelect,
+              },
+            },
+          },
+          status: true,
+          note: true,
+        },
+      },
+    },
+  },
+} as const satisfies Prisma.CarpoolInclude;
 
 export const RoundInclude = {
   carpool: {

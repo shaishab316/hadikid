@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CarpoolService } from './carpool.service';
@@ -16,6 +17,7 @@ import { CreateCarpoolDto } from './dto/create-carpool.dto';
 import { UpdateCarpoolDto } from './dto/update-carpool.dto';
 import { InviteMemberDto } from './dto/invite-carpool.dto';
 import { UpdateChecklistDto } from './dto/checklist-update.dto';
+import { QueryDefaultDto } from '@/common/dto/sharedDtoSchema';
 
 @Controller('carpools')
 @UseGuards(JwtGuard)
@@ -25,12 +27,22 @@ export class CarpoolController {
   @Get()
   async getMyCarpools(
     @CurrentUser('id') userId: number,
+    @Query() query: QueryDefaultDto,
   ): Promise<ApiResponse> {
-    const data = await this.carpoolService.getMyCarpools(userId);
+    const [data, total] = await this.carpoolService.getMyCarpools(
+      userId,
+      query,
+    );
 
     return {
       message: 'Carpools retrieved successfully',
       data,
+      pagination: {
+        limit: query.limit,
+        page: query.page,
+        total,
+        totalPages: Math.ceil(total / query.limit),
+      },
     };
   }
 
