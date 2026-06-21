@@ -155,6 +155,13 @@ export const CarpoolInclude = {
       },
     },
   },
+  invites: {
+    select: {
+      user: {
+        select: UserMinimalSelect,
+      },
+    },
+  },
 } as const satisfies Prisma.CarpoolInclude;
 
 export const RoundInclude = {

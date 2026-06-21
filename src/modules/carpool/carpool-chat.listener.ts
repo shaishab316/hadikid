@@ -48,6 +48,10 @@ export class CarpoolChatListener {
   async onMemberLeft({ userId, conversationId }: CarpoolMemberLeftEvent) {
     if (!conversationId) return;
 
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
     await this.prisma.conversationParticipant.update({
       where: { conversationId_userId: { conversationId, userId } },
       data: { leftAt: new Date() },
@@ -58,7 +62,7 @@ export class CarpoolChatListener {
         conversationId,
         senderId: userId,
         type: ConversationMessageType.SYSTEM,
-        content: 'left the group.',
+        content: `'${user?.name}' left from this conversation.`,
       },
     });
 

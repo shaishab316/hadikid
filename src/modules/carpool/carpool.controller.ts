@@ -191,7 +191,7 @@ export class CarpoolController {
   async withdrawInvite(
     @CurrentUser('id') userId: number,
     @Param('carpoolId') carpoolId: string,
-    @Param('invitedUserId') invitedUserId: number,
+    @Param('invitedUserId') invitedUserId: string,
   ): Promise<ApiResponse> {
     await this.carpoolService.withdrawInvite(userId, carpoolId, +invitedUserId);
 
