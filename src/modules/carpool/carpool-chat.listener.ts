@@ -52,6 +52,7 @@ export class CarpoolChatListener {
 
   @OnEvent(CarpoolEvent.INVITE_ACCEPTED)
   async onMemberJoined({
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     carpoolId,
     userId,
     conversationId,

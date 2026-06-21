@@ -1,10 +1,7 @@
 import { PrismaService } from '@/infra/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import {
-  DeleteQueryNotificationDto,
-  QueryNotificationsDto,
-} from '../dto/query-notifications.dto';
+import { QueryNotificationsDto } from '../dto/query-notifications.dto';
 import { NotificationSearchableFields } from '../notification.constants';
 
 @Injectable()
@@ -68,7 +65,7 @@ export class NotificationRepository {
   /**
    * Delete all notifications for a user
    */
-  async deleteAllByUserId(userId: number, query: DeleteQueryNotificationDto) {
+  async deleteAllByUserId(userId: number) {
     return await this.prisma.notification.deleteMany({
       where: { userId },
     });

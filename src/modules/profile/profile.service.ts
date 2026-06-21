@@ -11,6 +11,9 @@ export class ProfileService {
   }
 
   async getUserProfileById(currentUserId: number, targetUserId: number) {
-    return this.profileRepository.getUserProfileById(currentUserId, targetUserId);
+    return this.profileRepository.getUserProfileById(
+      currentUserId,
+      targetUserId,
+    );
   }
 }

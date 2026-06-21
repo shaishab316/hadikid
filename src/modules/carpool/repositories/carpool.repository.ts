@@ -73,13 +73,15 @@ export class CarpoolRepository {
   }
 
   async getCarpoolConversationId(carpoolId: string): Promise<string | null> {
-    // assumes metadata on conversation stores carpoolId
-    // adjust to your actual Conversation model linkage
-    const conv = await this.prisma.conversation.findFirst({
-      where: { type: 'GROUP' } as any, // filter by carpoolId in metadata if stored
-      select: { id: true },
+    const conversation = await this.prisma.conversation.findFirst({
+      where: {
+        carpool: {
+          id: carpoolId,
+        },
+      },
     });
-    return conv?.id ?? null;
+
+    return conversation?.id ?? null;
   }
 
   // ─── Carpool CRUD ─────────────────────────────────────────────────────────

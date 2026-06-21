@@ -34,7 +34,9 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
           : client.handshake.headers?.authorization);
 
       if (!token) {
-        this.logger.warn(`Connection rejected: No token provided for client ${client.id}`);
+        this.logger.warn(
+          `Connection rejected: No token provided for client ${client.id}`,
+        );
         client.disconnect(true);
         return;
       }
@@ -44,7 +46,9 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       const user = await this.userRepository.findById(userId);
       if (!user) {
-        this.logger.warn(`Connection rejected: User not found for client ${client.id}`);
+        this.logger.warn(
+          `Connection rejected: User not found for client ${client.id}`,
+        );
         client.disconnect(true);
         return;
       }
@@ -53,7 +57,9 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.data.userId = userId;
 
       await client.join(`user:${userId}`);
-      this.logger.log(`User ${userId} successfully authenticated and joined room user:${userId}`);
+      this.logger.log(
+        `User ${userId} successfully authenticated and joined room user:${userId}`,
+      );
     } catch (err: any) {
       this.logger.error(`Connection authentication failed: ${err.message}`);
       client.disconnect(true);

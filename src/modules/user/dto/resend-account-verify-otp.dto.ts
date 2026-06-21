@@ -6,4 +6,6 @@ export const ResendAccountVerifyOtpSchema = z.object({
   phone: _.phone(),
 });
 
-export class ResendAccountVerifyOtpDto extends createZodDto(ResendAccountVerifyOtpSchema) {}
+export class ResendAccountVerifyOtpDto extends createZodDto(
+  ResendAccountVerifyOtpSchema,
+) {}

@@ -419,7 +419,7 @@ export class CarpoolService {
   }
 
   private async getOwnerId(carpoolId: string): Promise<number> {
-    const owner = await this.carpoolRepo.isMember(carpoolId, 0); // dummy, refactor below
+    await this.carpoolRepo.isMember(carpoolId, 0); // dummy, refactor below
     // Actually fetch the owner member
     const carpool = await this.carpoolRepo.getCarpool(carpoolId);
     const ownerMember = (carpool as any).members?.find(
@@ -499,7 +499,7 @@ export class CarpoolService {
     }
 
     this.logger.log(
-      `Scheduled round job ${roundJob.id} for carpool ${carpoolId} at ${scheduledAt}`,
+      `Scheduled round job ${roundJob.id} for carpool ${carpoolId} at ${scheduledAt.toISOString()}`,
     );
   }
 

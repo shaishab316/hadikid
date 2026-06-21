@@ -44,9 +44,7 @@ export class OneSignalService implements INotificationService {
 
       this.logger.debug(`Found ${devices.length} device(s) in database`);
 
-      const player_ids = devices
-        .map((d) => d.token)
-        .filter(Boolean) as string[];
+      const player_ids = devices.map((d) => d.token).filter(Boolean);
 
       this.logger.debug(`Filtered to ${player_ids.length} valid player ID(s)`);
 

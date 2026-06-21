@@ -12,7 +12,6 @@ import {
   UserSelect,
   UserStatus,
 } from '@/modules/user/user.constant';
-import { LocationOmit } from '@/modules/address/address.constant';
 import { calculateDistanceInKm } from '@/common/helpers/calculateDistance';
 
 @Injectable()

@@ -1,6 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { NotificationRepository } from './repositories/notification.repository';
-import { Pagination } from '@/common/types/pagination';
 import {
   DeleteQueryNotificationDto,
   QueryNotificationsDto,

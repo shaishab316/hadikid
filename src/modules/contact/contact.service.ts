@@ -75,7 +75,7 @@ export class ContactService {
         message: `${sender?.name || 'Someone'} sent you a contact request`,
         type: 'INFO',
       });
-    } catch (error) {
+    } catch {
       // Don't fail the request if notification queue fails
     }
 
@@ -136,7 +136,7 @@ export class ContactService {
           message: `${receiver?.name || 'Someone'} accepted your contact request`,
           type: 'INFO',
         });
-      } catch (error) {
+      } catch {
         // Suppress notification issues
       }
     }

@@ -80,9 +80,7 @@ export class UserController {
 
   @Delete('me')
   @UseGuards(JwtGuard)
-  async deleteAccount(
-    @CurrentUser('id') userId: number,
-  ): Promise<ApiResponse> {
+  async deleteAccount(@CurrentUser('id') userId: number): Promise<ApiResponse> {
     await this.userService.deleteAccount(userId);
 
     return {
