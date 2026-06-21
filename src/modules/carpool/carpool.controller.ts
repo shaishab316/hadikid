@@ -21,19 +21,21 @@ import { UpdateChecklistDto } from './dto/checklist-update.dto';
 export class CarpoolController {
   constructor(private readonly carpoolService: CarpoolService) {}
 
-  // ─── Carpool CRUD ─────────────────────────────────────────────────────────
-
   @Post()
-  async create(
+  async createCarpool(
     @CurrentUser('id') userId: number,
     @Body() dto: CreateCarpoolDto,
   ): Promise<ApiResponse> {
     const data = await this.carpoolService.createCarpool(userId, dto);
-    return { message: 'Carpool created successfully', data };
+
+    return {
+      message: 'Carpool created successfully',
+      data,
+    };
   }
 
   @Patch(':carpoolId')
-  async update(
+  async updateCarpool(
     @CurrentUser('id') userId: number,
     @Param('carpoolId') carpoolId: string,
     @Body() dto: UpdateCarpoolDto,
@@ -43,19 +45,24 @@ export class CarpoolController {
       carpoolId,
       dto,
     );
-    return { message: 'Carpool updated successfully', data };
+
+    return {
+      message: 'Carpool updated successfully',
+      data,
+    };
   }
 
   @Delete(':carpoolId')
-  async delete(
+  async deleteCarpool(
     @CurrentUser('id') userId: number,
     @Param('carpoolId') carpoolId: string,
   ): Promise<ApiResponse> {
     await this.carpoolService.deleteCarpool(userId, carpoolId);
-    return { message: 'Carpool deleted successfully' };
-  }
 
-  // ─── Driver ───────────────────────────────────────────────────────────────
+    return {
+      message: 'Carpool deleted successfully',
+    };
+  }
 
   @Patch(':carpoolId/driver')
   async assignDriver(
@@ -63,7 +70,11 @@ export class CarpoolController {
     @Param('carpoolId') carpoolId: string,
   ): Promise<ApiResponse> {
     const data = await this.carpoolService.assignDriver(userId, carpoolId);
-    return { message: 'You have been assigned as driver', data };
+
+    return {
+      message: 'You have been assigned as driver',
+      data,
+    };
   }
 
   @Delete(':carpoolId/driver')
@@ -72,19 +83,23 @@ export class CarpoolController {
     @Param('carpoolId') carpoolId: string,
   ): Promise<ApiResponse> {
     await this.carpoolService.resignAsDriver(userId, carpoolId);
-    return { message: 'You have resigned as driver' };
+
+    return {
+      message: 'You have resigned as driver',
+    };
   }
 
-  // ─── Invite ───────────────────────────────────────────────────────────────
-
   @Post(':carpoolId/invites')
-  async invite(
+  async inviteMember(
     @CurrentUser('id') userId: number,
     @Param('carpoolId') carpoolId: string,
     @Body() dto: InviteMemberDto,
   ): Promise<ApiResponse> {
     await this.carpoolService.inviteMember(userId, carpoolId, dto);
-    return { message: 'Invitation sent successfully' };
+
+    return {
+      message: 'Invitation sent successfully',
+    };
   }
 
   @Delete(':carpoolId/invites/:invitedUserId')
@@ -94,7 +109,10 @@ export class CarpoolController {
     @Param('invitedUserId') invitedUserId: number,
   ): Promise<ApiResponse> {
     await this.carpoolService.withdrawInvite(userId, carpoolId, +invitedUserId);
-    return { message: 'Invitation withdrawn successfully' };
+
+    return {
+      message: 'Invitation withdrawn successfully',
+    };
   }
 
   @Post(':carpoolId/invites/accept')
@@ -103,7 +121,11 @@ export class CarpoolController {
     @Param('carpoolId') carpoolId: string,
   ): Promise<ApiResponse> {
     const data = await this.carpoolService.acceptInvite(userId, carpoolId);
-    return { message: 'You have joined the carpool', data };
+
+    return {
+      message: 'You have joined the carpool',
+      data,
+    };
   }
 
   @Post(':carpoolId/invites/decline')
@@ -112,21 +134,23 @@ export class CarpoolController {
     @Param('carpoolId') carpoolId: string,
   ): Promise<ApiResponse> {
     await this.carpoolService.declineInvite(userId, carpoolId);
-    return { message: 'Invitation declined' };
+
+    return {
+      message: 'Invitation declined',
+    };
   }
 
-  // ─── Member leave ─────────────────────────────────────────────────────────
-
   @Delete(':carpoolId/members/me')
-  async leave(
+  async leaveCarpool(
     @CurrentUser('id') userId: number,
     @Param('carpoolId') carpoolId: string,
   ): Promise<ApiResponse> {
     await this.carpoolService.leaveCarpool(userId, carpoolId);
-    return { message: 'You have left the carpool' };
-  }
 
-  // ─── Round ────────────────────────────────────────────────────────────────
+    return {
+      message: 'You have left the carpool',
+    };
+  }
 
   @Post('rounds/:roundId/start')
   async startRound(
@@ -134,7 +158,11 @@ export class CarpoolController {
     @Param('roundId') roundId: string,
   ): Promise<ApiResponse> {
     const data = await this.carpoolService.startRound(userId, roundId);
-    return { message: 'Round started', data };
+
+    return {
+      message: 'Round started',
+      data,
+    };
   }
 
   @Post('rounds/:roundId/complete')
@@ -143,10 +171,12 @@ export class CarpoolController {
     @Param('roundId') roundId: string,
   ): Promise<ApiResponse> {
     const data = await this.carpoolService.completeRound(userId, roundId);
-    return { message: 'Round completed', data };
-  }
 
-  // ─── Checklist ────────────────────────────────────────────────────────────
+    return {
+      message: 'Round completed',
+      data,
+    };
+  }
 
   @Patch('rounds/:roundId/pickup-checklist')
   async updatePickupChecklist(
@@ -159,7 +189,11 @@ export class CarpoolController {
       roundId,
       dto,
     );
-    return { message: 'Pickup checklist updated', data };
+
+    return {
+      message: 'Pickup checklist updated',
+      data,
+    };
   }
 
   @Patch('rounds/:roundId/dropoff-checklist')
@@ -173,6 +207,10 @@ export class CarpoolController {
       roundId,
       dto,
     );
-    return { message: 'Drop-off checklist updated', data };
+
+    return {
+      message: 'Drop-off checklist updated',
+      data,
+    };
   }
 }

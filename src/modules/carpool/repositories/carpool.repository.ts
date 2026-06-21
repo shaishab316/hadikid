@@ -31,12 +31,11 @@ export class CarpoolRepository {
     });
   }
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
-
   async verifyChildrenBelongToUser(userId: number, childrenIds: string[]) {
     const count = await this.prisma.child.count({
       where: { id: { in: childrenIds }, parentId: userId },
     });
+
     return count === childrenIds.length;
   }
 
@@ -45,6 +44,7 @@ export class CarpoolRepository {
       where: { carpoolId, leftAt: null },
       select: { userId: true },
     });
+
     return members.map((m) => m.userId);
   }
 
@@ -83,8 +83,6 @@ export class CarpoolRepository {
 
     return conversation?.id ?? null;
   }
-
-  // ─── Carpool CRUD ─────────────────────────────────────────────────────────
 
   async createCarpool(userId: number, dto: CreateCarpoolDto) {
     const {
@@ -161,8 +159,6 @@ export class CarpoolRepository {
     });
   }
 
-  // ─── Driver ───────────────────────────────────────────────────────────────
-
   async assignDriver(carpoolId: string, userId: number) {
     return this.prisma.carpool.update({
       where: { id: carpoolId },
@@ -178,8 +174,6 @@ export class CarpoolRepository {
     });
   }
 
-  // ─── Invite ───────────────────────────────────────────────────────────────
-
   async createInvite(
     carpoolId: string,
     invitedByUserId: number,
@@ -191,7 +185,7 @@ export class CarpoolRepository {
         userId: dto.userId,
         status: CarpoolInviteStatus.PENDING,
         message: dto.message,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },
     });
   }
@@ -223,16 +217,12 @@ export class CarpoolRepository {
     });
   }
 
-  // ─── Member ───────────────────────────────────────────────────────────────
-
   async memberLeave(carpoolId: string, userId: number) {
     return this.prisma.carpoolMember.update({
       where: { carpoolId_userId: { carpoolId, userId } },
       data: { leftAt: new Date() },
     });
   }
-
-  // ─── Round ────────────────────────────────────────────────────────────────
 
   async createRound(
     carpoolId: string,
@@ -319,8 +309,6 @@ export class CarpoolRepository {
     });
   }
 
-  // ─── Checklist ────────────────────────────────────────────────────────────
-
   async updatePickupChecklist(
     roundId: string,
     memberId: string,
@@ -352,8 +340,6 @@ export class CarpoolRepository {
       },
     });
   }
-
-  // ─── Vehicle location (DB flush) ──────────────────────────────────────────
 
   async updateVehicleLocationInDb(
     carpoolId: string,

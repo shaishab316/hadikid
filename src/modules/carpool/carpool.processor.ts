@@ -8,7 +8,7 @@ import { CarpoolRoundReminderEvent } from './carpool.interface';
 
 export interface ScheduleRoundJobData {
   carpoolId: string;
-  scheduledAt: string; // ISO string
+  scheduledAt: string;
   type: 'PICKUP' | 'DROPOFF';
 }
 
@@ -26,7 +26,7 @@ export class CarpoolProcessor extends WorkerHost {
   private readonly logger = new Logger(CarpoolProcessor.name);
 
   constructor(
-    private readonly carpoolRepo: CarpoolRepository,
+    private readonly carpoolRepository: CarpoolRepository,
     private readonly eventEmitter: EventEmitter2,
   ) {
     super();
@@ -46,14 +46,11 @@ export class CarpoolProcessor extends WorkerHost {
     }
   }
 
-  // ─── Create the round in DB when its scheduled time arrives ───────────────
-  // The driver will manually start it — this just materializes the round.
-
   private async handleScheduleRound(data: ScheduleRoundJobData) {
     this.logger.log(`Creating round for carpool ${data.carpoolId}`);
 
     const scheduledAt = new Date(data.scheduledAt);
-    const round = await this.carpoolRepo.createRound(
+    const round = await this.carpoolRepository.createRound(
       data.carpoolId,
       scheduledAt,
       data.type,
@@ -62,8 +59,6 @@ export class CarpoolProcessor extends WorkerHost {
     this.logger.log(`Round ${round.id} created for carpool ${data.carpoolId}`);
     return round;
   }
-
-  // ─── Reminder notifications (30 min / 15 min before) ─────────────────────
 
   // eslint-disable-next-line @typescript-eslint/require-await
   private async handleRoundReminder(data: RoundReminderJobData) {
@@ -80,7 +75,6 @@ export class CarpoolProcessor extends WorkerHost {
       memberIds: data.memberIds,
     };
 
-    this.eventEmitter.emit(CarpoolEvent.ROUND_STARTED, payload); // reuse listener for reminder notification
-    // NOTE: listener checks minutesBefore to craft the right message
+    this.eventEmitter.emit(CarpoolEvent.ROUND_STARTED, payload);
   }
 }

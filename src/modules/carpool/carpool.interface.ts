@@ -1,13 +1,8 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// CARPOOL EVENT PAYLOADS
-// Each event carries exactly what listeners need — no over-fetching.
-// ─────────────────────────────────────────────────────────────────────────────
-
 export interface CarpoolCreatedEvent {
   carpoolId: string;
   title: string;
   ownerId: number;
-  memberIds: number[]; // includes owner
+  memberIds: number[];
 }
 
 export interface CarpoolUpdatedEvent {
@@ -15,7 +10,7 @@ export interface CarpoolUpdatedEvent {
   title: string;
   updatedById: number;
   memberIds: number[];
-  changedFields: string[]; // e.g. ['title', 'notes', 'pickup']
+  changedFields: string[];
 }
 
 export interface CarpoolDeletedEvent {
@@ -59,7 +54,7 @@ export interface CarpoolInviteAcceptedEvent {
   carpoolId: string;
   title: string;
   userId: number;
-  memberIds: number[]; // existing members to notify
+  memberIds: number[];
   conversationId: string;
 }
 
@@ -74,7 +69,7 @@ export interface CarpoolMemberLeftEvent {
   carpoolId: string;
   title: string;
   userId: number;
-  memberIds: number[]; // remaining members
+  memberIds: number[];
   conversationId: string;
 }
 
@@ -110,5 +105,5 @@ export interface CarpoolVehicleLocationUpdatedEvent {
   driverId: number;
   latitude: number;
   longitude: number;
-  updateCount: number; // used to decide DB flush
+  updateCount: number;
 }

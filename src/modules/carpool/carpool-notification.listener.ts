@@ -26,8 +26,6 @@ export class CarpoolNotificationListener {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  // ─── Helper: bulk-create notifications ──────────────────────────────────
-
   private async notify(
     userIds: number[],
     type: string,
@@ -60,8 +58,6 @@ export class CarpoolNotificationListener {
 
   private carpoolUrl = (id: string) => `/carpools/${id}`;
 
-  // ─── CARPOOL CREATED ─────────────────────────────────────────────────────
-
   @OnEvent(CarpoolEvent.CREATED)
   async onCreated({ carpoolId, title, ownerId }: CarpoolCreatedEvent) {
     await this.notify(
@@ -73,8 +69,6 @@ export class CarpoolNotificationListener {
       { carpoolId },
     );
   }
-
-  // ─── CARPOOL UPDATED ─────────────────────────────────────────────────────
 
   @OnEvent(CarpoolEvent.UPDATED)
   async onUpdated({
@@ -97,8 +91,6 @@ export class CarpoolNotificationListener {
     );
   }
 
-  // ─── CARPOOL DELETED ─────────────────────────────────────────────────────
-
   @OnEvent(CarpoolEvent.DELETED)
   async onDeleted({
     carpoolId,
@@ -118,8 +110,6 @@ export class CarpoolNotificationListener {
     );
   }
 
-  // ─── DRIVER ASSIGNED ─────────────────────────────────────────────────────
-
   @OnEvent(CarpoolEvent.DRIVER_ASSIGNED)
   async onDriverAssigned({
     carpoolId,
@@ -128,7 +118,6 @@ export class CarpoolNotificationListener {
     assignedById,
     memberIds,
   }: CarpoolDriverAssignedEvent) {
-    // Tell the new driver
     await this.notify(
       [driverId],
       NotificationType.DRIVER_UPDATED,
@@ -138,7 +127,6 @@ export class CarpoolNotificationListener {
       { carpoolId },
     );
 
-    // Tell others (excluding the driver themselves)
     const othersToNotify = memberIds.filter(
       (id) => id !== driverId && id !== assignedById,
     );
@@ -153,8 +141,6 @@ export class CarpoolNotificationListener {
       );
     }
   }
-
-  // ─── DRIVER RESIGNED ─────────────────────────────────────────────────────
 
   @OnEvent(CarpoolEvent.DRIVER_RESIGNED)
   async onDriverResigned({
@@ -174,8 +160,6 @@ export class CarpoolNotificationListener {
       { carpoolId },
     );
   }
-
-  // ─── MEMBER INVITED ──────────────────────────────────────────────────────
 
   @OnEvent(CarpoolEvent.MEMBER_INVITED)
   async onMemberInvited({
@@ -200,8 +184,6 @@ export class CarpoolNotificationListener {
     );
   }
 
-  // ─── INVITE WITHDRAWN ────────────────────────────────────────────────────
-
   @OnEvent(CarpoolEvent.INVITE_WITHDRAWN)
   async onInviteWithdrawn({
     carpoolId,
@@ -217,8 +199,6 @@ export class CarpoolNotificationListener {
       { carpoolId },
     );
   }
-
-  // ─── INVITE ACCEPTED ─────────────────────────────────────────────────────
 
   @OnEvent(CarpoolEvent.INVITE_ACCEPTED)
   async onInviteAccepted({
@@ -244,8 +224,6 @@ export class CarpoolNotificationListener {
     );
   }
 
-  // ─── INVITE DECLINED ─────────────────────────────────────────────────────
-
   @OnEvent(CarpoolEvent.INVITE_DECLINED)
   async onInviteDeclined({
     carpoolId,
@@ -267,8 +245,6 @@ export class CarpoolNotificationListener {
       { carpoolId, declinedByUserId: userId },
     );
   }
-
-  // ─── MEMBER LEFT ─────────────────────────────────────────────────────────
 
   @OnEvent(CarpoolEvent.MEMBER_LEFT)
   async onMemberLeft({
@@ -294,8 +270,6 @@ export class CarpoolNotificationListener {
     );
   }
 
-  // ─── ROUND STARTED ───────────────────────────────────────────────────────
-
   @OnEvent(CarpoolEvent.ROUND_STARTED)
   async onRoundStarted({
     carpoolId,
@@ -315,8 +289,6 @@ export class CarpoolNotificationListener {
       { carpoolId, roundId, type },
     );
   }
-
-  // ─── ROUND COMPLETED ─────────────────────────────────────────────────────
 
   @OnEvent(CarpoolEvent.ROUND_COMPLETED)
   async onRoundCompleted({
@@ -338,11 +310,8 @@ export class CarpoolNotificationListener {
     );
   }
 
-  // ─── ROUND REMINDER (30 & 15 min before) ────────────────────────────────
-
-  @OnEvent(CarpoolEvent.ROUND_STARTED) // processor emits this for reminders too
+  @OnEvent(CarpoolEvent.ROUND_STARTED)
   async onRoundReminder(payload: CarpoolRoundReminderEvent) {
-    // Only handle if it has minutesBefore (reminder shape)
     if (!('minutesBefore' in payload)) return;
 
     const { carpoolId, roundId, carpoolTitle, minutesBefore, memberIds } =

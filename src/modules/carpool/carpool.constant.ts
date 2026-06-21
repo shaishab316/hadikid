@@ -1,9 +1,5 @@
 import { LocationOmit } from '../address/address.constant';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// WEEKDAYS
-// ─────────────────────────────────────────────────────────────────────────────
-
 export const Weekdays = {
   Saturday: 'Saturday',
   Sunday: 'Sunday',
@@ -24,10 +20,6 @@ export const WeekdayMap: Record<Weekdays, string> = {
   Thursday: 'TH',
   Friday: 'FR',
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CARPOOL
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const CarpoolRepeatFrequency = {
   DAILY: 'DAILY',
@@ -58,10 +50,6 @@ export const CarpoolInviteStatus = {
 } as const;
 export type CarpoolInviteStatus = keyof typeof CarpoolInviteStatus;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ROUND
-// ─────────────────────────────────────────────────────────────────────────────
-
 export const RoundType = {
   PICKUP: 'PICKUP',
   DROPOFF: 'DROPOFF',
@@ -83,10 +71,6 @@ export const ChecklistStatus = {
 } as const;
 export type ChecklistStatus = keyof typeof ChecklistStatus;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// QUEUE & JOBS
-// ─────────────────────────────────────────────────────────────────────────────
-
 export const CARPOOL_QUEUE = 'carpool';
 
 export const CarpoolJob = {
@@ -95,10 +79,6 @@ export const CarpoolJob = {
   NOTIFY_BEFORE_15: 'notify_before_15',
 } as const;
 export type CarpoolJob = (typeof CarpoolJob)[keyof typeof CarpoolJob];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// EVENTS
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const CarpoolEvent = {
   CREATED: 'carpool.created',
@@ -118,19 +98,11 @@ export const CarpoolEvent = {
 } as const;
 export type CarpoolEvent = (typeof CarpoolEvent)[keyof typeof CarpoolEvent];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// REDIS KEYS
-// ─────────────────────────────────────────────────────────────────────────────
-
 export const CarpoolRedisKey = {
   vehicleLocation: (carpoolId: string) => `carpool:${carpoolId}:vehicle`,
   roundJobId: (roundId: string, suffix: string) =>
     `carpool:round:${roundId}:job:${suffix}`,
 } as const;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PRISMA INCLUDES
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const CarpoolInclude = {
   pickup: { omit: LocationOmit },
@@ -163,9 +135,4 @@ export const RoundInclude = {
   },
 } as const;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// VEHICLE LOCATION SYNC
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Flush vehicle location to DB every N socket updates */
 export const VEHICLE_LOCATION_DB_FLUSH_INTERVAL = 10;
