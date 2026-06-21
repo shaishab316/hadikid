@@ -76,6 +76,8 @@ model User {
     contacts1               Contact[]        @relation("contacts1")
     contacts2               Contact[]        @relation("contacts2")
 
+    carpoolRounds CarpoolRound[] @relation("carpool_round_driver")
+
     @@index([slug])
     @@index([email])
     @@index([phone])

@@ -1,5 +1,8 @@
-import { omit } from 'node_modules/zod/v4/core/util.cjs';
 import { LocationOmit } from '../address/address.constant';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WEEKDAYS
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const Weekdays = {
   Saturday: 'Saturday',
@@ -12,7 +15,7 @@ export const Weekdays = {
 } as const;
 export type Weekdays = keyof typeof Weekdays;
 
-export const WeekdayMap = {
+export const WeekdayMap: Record<Weekdays, string> = {
   Saturday: 'SA',
   Sunday: 'SU',
   Monday: 'MO',
@@ -20,7 +23,11 @@ export const WeekdayMap = {
   Wednesday: 'WE',
   Thursday: 'TH',
   Friday: 'FR',
-} as const;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CARPOOL
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const CarpoolRepeatFrequency = {
   DAILY: 'DAILY',
@@ -29,39 +36,10 @@ export const CarpoolRepeatFrequency = {
 } as const;
 export type CarpoolRepeatFrequency = keyof typeof CarpoolRepeatFrequency;
 
-export const CarpoolInclude = {
-  pickup: {
-    omit: LocationOmit,
-  },
-  dropoff: {
-    omit: LocationOmit,
-  },
-  repeatRule: true,
-  members: {
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-        },
-      },
-      children: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-    },
-  },
-};
-
 export const CarpoolRole = {
   OWNER: 'OWNER',
   MEMBER: 'MEMBER',
 } as const;
-
 export type CarpoolRole = keyof typeof CarpoolRole;
 
 export const CarpoolStatus = {
@@ -70,5 +48,124 @@ export const CarpoolStatus = {
   COMPLETED: 'COMPLETED',
   CANCELLED: 'CANCELLED',
 } as const;
-
 export type CarpoolStatus = keyof typeof CarpoolStatus;
+
+export const CarpoolInviteStatus = {
+  PENDING: 'PENDING',
+  ACCEPTED: 'ACCEPTED',
+  DECLINED: 'DECLINED',
+  CANCELLED: 'CANCELLED',
+} as const;
+export type CarpoolInviteStatus = keyof typeof CarpoolInviteStatus;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ROUND
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const RoundType = {
+  PICKUP: 'PICKUP',
+  DROPOFF: 'DROPOFF',
+} as const;
+export type RoundType = keyof typeof RoundType;
+
+export const RoundStatus = {
+  SCHEDULED: 'SCHEDULED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+} as const;
+export type RoundStatus = keyof typeof RoundStatus;
+
+export const ChecklistStatus = {
+  PENDING: 'PENDING',
+  PRESENT: 'PRESENT',
+  ABSENT: 'ABSENT',
+} as const;
+export type ChecklistStatus = keyof typeof ChecklistStatus;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// QUEUE & JOBS
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const CARPOOL_QUEUE = 'carpool';
+
+export const CarpoolJob = {
+  SCHEDULE_ROUND: 'schedule_round',
+  NOTIFY_BEFORE_30: 'notify_before_30',
+  NOTIFY_BEFORE_15: 'notify_before_15',
+} as const;
+export type CarpoolJob = (typeof CarpoolJob)[keyof typeof CarpoolJob];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EVENTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const CarpoolEvent = {
+  CREATED: 'carpool.created',
+  UPDATED: 'carpool.updated',
+  DELETED: 'carpool.deleted',
+  DRIVER_ASSIGNED: 'carpool.driver.assigned',
+  DRIVER_RESIGNED: 'carpool.driver.resigned',
+  MEMBER_INVITED: 'carpool.member.invited',
+  INVITE_WITHDRAWN: 'carpool.invite.withdrawn',
+  INVITE_ACCEPTED: 'carpool.invite.accepted',
+  INVITE_DECLINED: 'carpool.invite.declined',
+  MEMBER_LEFT: 'carpool.member.left',
+  ROUND_STARTED: 'carpool.round.started',
+  ROUND_COMPLETED: 'carpool.round.completed',
+  ROUND_CANCELLED: 'carpool.round.cancelled',
+  VEHICLE_LOCATION_UPDATED: 'carpool.vehicle.location.updated',
+} as const;
+export type CarpoolEvent = (typeof CarpoolEvent)[keyof typeof CarpoolEvent];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REDIS KEYS
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const CarpoolRedisKey = {
+  vehicleLocation: (carpoolId: string) => `carpool:${carpoolId}:vehicle`,
+  roundJobId: (roundId: string, suffix: string) =>
+    `carpool:round:${roundId}:job:${suffix}`,
+} as const;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRISMA INCLUDES
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const CarpoolInclude = {
+  pickup: { omit: LocationOmit },
+  dropoff: { omit: LocationOmit },
+  repeatRule: true,
+  members: {
+    include: {
+      user: { select: { id: true, name: true, email: true, phone: true } },
+      children: { select: { id: true, name: true } },
+    },
+  },
+} as const;
+
+export const RoundInclude = {
+  carpool: {
+    include: {
+      members: {
+        include: {
+          user: { select: { id: true, name: true } },
+          children: { select: { id: true, name: true } },
+        },
+      },
+    },
+  },
+  pickupChecklists: {
+    include: { child: { select: { id: true, name: true } } },
+  },
+  dropoffChecklists: {
+    include: { child: { select: { id: true, name: true } } },
+  },
+} as const;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VEHICLE LOCATION SYNC
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Flush vehicle location to DB every N socket updates */
+export const VEHICLE_LOCATION_DB_FLUSH_INTERVAL = 10;

@@ -12,8 +12,8 @@ model Conversation {
     imageId String?
     image   Media?  @relation("conversation_image", fields: [imageId], references: [id], onDelete: SetNull)
 
-    participants  ConversationParticipant[]
-    messages      ConversationMessage[]     @relation("conversation_messages")
+    participants ConversationParticipant[]
+    messages     ConversationMessage[]     @relation("conversation_messages")
 
     /// Denormalized for fast inbox rendering — update on every new message
     lastMessageId String?              @unique
@@ -21,6 +21,8 @@ model Conversation {
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    carpool Carpool?
 
     @@index([type])
     @@index([updatedAt])
@@ -49,11 +51,11 @@ model ConversationParticipant {
     /// Denormalized unread count — increment on new message, reset on seen
     unreadCount Int @default(0)
 
-    isMuted   Boolean   @default(false)
+    isMuted    Boolean   @default(false)
     mutedUntil DateTime?
 
-    joinedAt  DateTime  @default(now())
-    leftAt    DateTime?
+    joinedAt DateTime  @default(now())
+    leftAt   DateTime?
 
     updatedAt DateTime @updatedAt
 
