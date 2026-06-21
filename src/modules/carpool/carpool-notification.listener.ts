@@ -18,17 +18,20 @@ import type {
 } from './carpool.interface';
 import { CarpoolEvent } from './carpool.constant';
 import { NotificationType } from '@/infra/notification/notification.constants';
-import { Prisma } from '@prisma/client';
+import { NotificationService } from '@/infra/notification/notification.service';
 
 @Injectable()
 export class CarpoolNotificationListener {
   private readonly logger = new Logger(CarpoolNotificationListener.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationService: NotificationService,
+  ) {}
 
   private async notify(
     userIds: number[],
-    type: string,
+    type: NotificationType,
     title: string,
     message: string,
     actionUrl: string,
@@ -38,22 +41,23 @@ export class CarpoolNotificationListener {
 
     const unique = [...new Set(userIds)];
 
-    await this.prisma.notification.createMany({
-      data: unique.map(
-        (userId) =>
-          ({
-            userId,
-            type,
-            title,
-            message,
-            actionUrl,
-            metadata: metadata as Prisma.InputJsonValue,
-          }) satisfies Prisma.NotificationCreateArgs['data'],
-      ),
-      skipDuplicates: true,
-    });
-
-    this.logger.log(`[${type}] Notified ${unique.length} users`);
+    try {
+      await this.notificationService.sendNotification({
+        userIds: unique,
+        type,
+        title,
+        message,
+        actionUrl,
+        metadata,
+      });
+      this.logger.log(
+        `[${type}] Notification queued for ${unique.length} users`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to queue notification: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
   }
 
   private carpoolUrl = (id: string) => `/carpools/${id}`;
@@ -63,7 +67,7 @@ export class CarpoolNotificationListener {
     await this.notify(
       [ownerId],
       NotificationType.CARPOOL_UPDATED,
-      '🚗 Carpool Created',
+      'Carpool Created',
       `Your carpool "${title}" is ready. Invite members to get started!`,
       this.carpoolUrl(carpoolId),
       { carpoolId },
@@ -103,7 +107,7 @@ export class CarpoolNotificationListener {
     await this.notify(
       othersToNotify,
       NotificationType.CARPOOL_UPDATED,
-      '🗑️ Carpool Cancelled',
+      '@@@@@@@@@@@@@@@@️ Carpool Cancelled',
       `The carpool "${title}" has been cancelled by the owner.`,
       '/carpools',
       { carpoolId },
@@ -121,7 +125,7 @@ export class CarpoolNotificationListener {
     await this.notify(
       [driverId],
       NotificationType.DRIVER_UPDATED,
-      '🚙 You are now the Driver',
+      'You are now the Driver',
       `You've been assigned as the driver for "${title}". Get ready to roll!`,
       this.carpoolUrl(carpoolId),
       { carpoolId },
@@ -134,7 +138,7 @@ export class CarpoolNotificationListener {
       await this.notify(
         othersToNotify,
         NotificationType.DRIVER_UPDATED,
-        '🚙 Driver Assigned',
+        'Driver Assigned',
         `A driver has been assigned for "${title}".`,
         this.carpoolUrl(carpoolId),
         { carpoolId, driverId },
@@ -177,7 +181,7 @@ export class CarpoolNotificationListener {
     await this.notify(
       [invitedUserId],
       NotificationType.CARPOOL_REQUEST,
-      '📩 Carpool Invitation',
+      'Carpool Invitation',
       `${inviter?.name ?? 'Someone'} invited you to join "${title}"${message ? `: "${message}"` : '.'}`,
       `/carpools/invites/${carpoolId}`,
       { carpoolId, invitedByUserId, message },
@@ -217,7 +221,7 @@ export class CarpoolNotificationListener {
     await this.notify(
       othersToNotify,
       NotificationType.CARPOOL_REQUEST,
-      '🎉 New Member Joined',
+      'New Member Joined',
       `${newMember?.name ?? 'Someone'} joined "${title}".`,
       this.carpoolUrl(carpoolId),
       { carpoolId, newMemberId: userId },
@@ -263,7 +267,7 @@ export class CarpoolNotificationListener {
     await this.notify(
       othersToNotify,
       NotificationType.CARPOOL_UPDATED,
-      '👋 Member Left',
+      'Member Left',
       `${leaver?.name ?? 'A member'} has left "${title}".`,
       this.carpoolUrl(carpoolId),
       { carpoolId, leftUserId: userId },
@@ -278,7 +282,7 @@ export class CarpoolNotificationListener {
     type,
     memberIds,
   }: CarpoolRoundStartedEvent) {
-    const tripType = type === 'PICKUP' ? '🚌 Pickup' : '🏠 Drop-off';
+    const tripType = type === 'PICKUP' ? 'Pickup' : 'Drop-off';
 
     await this.notify(
       memberIds,

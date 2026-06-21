@@ -6,6 +6,8 @@ export interface NotificationSendData {
   title: string;
   type: NotificationType;
   id: string;
+  actionUrl?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface INotificationService {
@@ -17,4 +19,6 @@ export type NotificationData = {
   title: string;
   message: string;
   type: NotificationType;
+  actionUrl?: string;
+  metadata?: Record<string, any>;
 };

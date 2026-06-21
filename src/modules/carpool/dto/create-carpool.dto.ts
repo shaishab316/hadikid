@@ -30,6 +30,7 @@ export const CreateCarpoolSchema = z.object({
   selectedChildrenIds: z
     .array(z.uuid())
     .min(1, 'At least one child is required'),
+  memberIds: z.array(z.number().int()).optional(),
 });
 
 export class CreateCarpoolDto extends createZodDto(CreateCarpoolSchema) {}

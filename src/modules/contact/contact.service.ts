@@ -16,6 +16,7 @@ import {
   QueryContactsDto,
 } from './dto/query-contact.dto';
 import { QueryNearbyFamiliesDto } from './dto/query-nearby.dto';
+import { NotificationType } from '@/infra/notification/notification.constants';
 
 @Injectable()
 export class ContactService {
@@ -73,7 +74,7 @@ export class ContactService {
         userIds: [receiverId],
         title: 'New Contact Request',
         message: `${sender?.name || 'Someone'} sent you a contact request`,
-        type: 'INFO',
+        type: NotificationType.CONTACT_REQUEST,
       });
     } catch {
       // Don't fail the request if notification queue fails
@@ -134,7 +135,7 @@ export class ContactService {
           userIds: [request.senderId],
           title: 'Contact Request Accepted',
           message: `${receiver?.name || 'Someone'} accepted your contact request`,
-          type: 'INFO',
+          type: NotificationType.CONTACT_REQUEST,
         });
       } catch {
         // Suppress notification issues

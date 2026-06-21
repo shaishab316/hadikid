@@ -46,6 +46,8 @@ export class NotificationProcessor extends WorkerHost {
             message: job.data.message,
             type: job.data.type,
             id: job.data.id,
+            actionUrl: job.data.actionUrl,
+            metadata: job.data.metadata,
           })),
         );
       }

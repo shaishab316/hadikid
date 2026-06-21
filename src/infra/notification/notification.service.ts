@@ -19,7 +19,7 @@ export class NotificationService {
   ) {}
 
   async sendNotification(
-    { message, title, type, userIds }: NotificationData,
+    { message, title, type, userIds, actionUrl, metadata }: NotificationData,
     options: JobsOptions = {
       attempts: 3,
       backoff: { type: 'exponential', delay: 5000 },
@@ -35,6 +35,8 @@ export class NotificationService {
         message,
         type,
         id: ulid(),
+        actionUrl,
+        metadata,
       },
       options,
     );

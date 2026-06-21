@@ -14,7 +14,8 @@ export const NotificationType = {
   CARPOOL_UPDATED: 'CARPOOL_UPDATED',
   DRIVER_UPDATED: 'DRIVER_UPDATED',
   MESSAGE: 'MESSAGE',
-};
+} as const;
+
 export type NotificationType = keyof typeof NotificationType;
 
 export const NotificationSearchableFields = [

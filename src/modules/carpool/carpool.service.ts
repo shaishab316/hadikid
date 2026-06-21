@@ -26,6 +26,8 @@ import { UpdateChecklistDto } from './dto/checklist-update.dto';
 import { UpdateVehicleLocationDto } from './dto/update-vehicle-location.dto';
 import { CACHE_KEY } from '@/infra/redis/redis.constant';
 import { QueryDefaultDto } from '@/common/dto/sharedDtoSchema';
+import { NotificationService } from '@/infra/notification/notification.service';
+import { NotificationType } from '@/infra/notification/notification.constants';
 
 @Injectable()
 export class CarpoolService {
@@ -36,6 +38,7 @@ export class CarpoolService {
     private readonly eventEmitter: EventEmitter2,
     private readonly redis: RedisService,
     @InjectQueue(CARPOOL_QUEUE) private readonly carpoolQueue: Queue,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async createCarpool(userId: number, dto: CreateCarpoolDto) {
@@ -57,6 +60,25 @@ export class CarpoolService {
     });
 
     await this.scheduleNextRound(carpool.id, dto.date, RoundType.PICKUP);
+
+    if (dto.memberIds && dto.memberIds.length > 0) {
+      for (const memberId of dto.memberIds) {
+        if (memberId === userId) {
+          continue;
+        }
+
+        try {
+          await this.inviteMember(userId, carpool.id, {
+            userId: memberId,
+            message: 'You have been invited to join this carpool.',
+          });
+        } catch (error) {
+          this.logger.warn(
+            `Failed to send default invitation to user ${memberId} on carpool creation: ${error.message}`,
+          );
+        }
+      }
+    }
 
     return carpool;
   }
@@ -157,6 +179,17 @@ export class CarpoolService {
       dto.userId,
     );
     if (!isContact) {
+      try {
+        await this.notificationService.sendNotification({
+          userIds: [userId],
+          title: 'Invitation Failed',
+          message: 'You can only invite your contacts',
+          type: NotificationType.WARNING,
+        });
+      } catch (error) {
+        this.logger.warn(`Failed to send warning notification: ${error.message}`);
+      }
+
       throw new BadRequestException('You can only invite your contacts');
     }
 
