@@ -13,6 +13,7 @@ import LokiTransport from 'winston-loki';
 import { MailWorkerModule } from '@/infra/mail/mail-worker.module';
 import { NotificationWorkerModule } from '@/infra/notification/notification-worker.module';
 import { CarpoolWorkerModule } from '@/modules/carpool/carpool-worker.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { CarpoolWorkerModule } from '@/modules/carpool/carpool-worker.module';
         connection: { url: config.get('REDIS_URL', { infer: true }) },
       }),
     }),
+    EventEmitterModule.forRoot(),
     PrismaModule,
     RedisModule,
     MailWorkerModule,

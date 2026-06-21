@@ -14,7 +14,6 @@ import {
   CARPOOL_QUEUE,
   CarpoolEvent,
   CarpoolJob,
-  CarpoolRedisKey,
   CarpoolRole,
   RoundStatus,
   RoundType,
@@ -25,6 +24,7 @@ import { UpdateCarpoolDto } from './dto/update-carpool.dto';
 import { InviteMemberDto } from './dto/invite-carpool.dto';
 import { UpdateChecklistDto } from './dto/checklist-update.dto';
 import { UpdateVehicleLocationDto } from './dto/update-vehicle-location.dto';
+import { CACHE_KEY } from '@/infra/redis/redis.constant';
 
 @Injectable()
 export class CarpoolService {
@@ -114,7 +114,10 @@ export class CarpoolService {
       throw new BadRequestException('Driver must be a carpool member');
     }
 
-    const carpool = await this.carpoolRepository.assignDriver(carpoolId, userId);
+    const carpool = await this.carpoolRepository.assignDriver(
+      carpoolId,
+      userId,
+    );
     const memberIds = await this.carpoolRepository.getMemberUserIds(carpoolId);
 
     this.eventEmitter.emit(CarpoolEvent.DRIVER_ASSIGNED, {
@@ -148,7 +151,10 @@ export class CarpoolService {
   async inviteMember(userId: number, carpoolId: string, dto: InviteMemberDto) {
     await this.assertOwner(carpoolId, userId);
 
-    const isContact = await this.carpoolRepository.isContact(userId, dto.userId);
+    const isContact = await this.carpoolRepository.isContact(
+      userId,
+      dto.userId,
+    );
     if (!isContact) {
       throw new BadRequestException('You can only invite your contacts');
     }
@@ -261,7 +267,9 @@ export class CarpoolService {
     }
 
     const updated = await this.carpoolRepository.startRound(roundId);
-    const memberIds = await this.carpoolRepository.getMemberUserIds(round.carpoolId);
+    const memberIds = await this.carpoolRepository.getMemberUserIds(
+      round.carpoolId,
+    );
 
     this.eventEmitter.emit(CarpoolEvent.ROUND_STARTED, {
       carpoolId: round.carpoolId,
@@ -286,7 +294,9 @@ export class CarpoolService {
     }
 
     const updated = await this.carpoolRepository.completeRound(roundId);
-    const memberIds = await this.carpoolRepository.getMemberUserIds(round.carpoolId);
+    const memberIds = await this.carpoolRepository.getMemberUserIds(
+      round.carpoolId,
+    );
 
     this.eventEmitter.emit(CarpoolEvent.ROUND_COMPLETED, {
       carpoolId: round.carpoolId,
@@ -320,12 +330,16 @@ export class CarpoolService {
     dto: UpdateChecklistDto,
   ) {
     const memberId = await this.getMemberId(roundId, userId);
-    return this.carpoolRepository.updateDropoffChecklist(roundId, memberId, dto);
+    return this.carpoolRepository.updateDropoffChecklist(
+      roundId,
+      memberId,
+      dto,
+    );
   }
 
   async updateVehicleLocation(userId: number, dto: UpdateVehicleLocationDto) {
     const { carpoolId, roundId, latitude, longitude } = dto;
-    const key = CarpoolRedisKey.vehicleLocation(carpoolId);
+    const key = CACHE_KEY.CARPOOL.VEHICLE_LOCATION(carpoolId);
 
     const updateCount = await this.redis.getClient().incr(`${key}:count`);
 
@@ -356,6 +370,24 @@ export class CarpoolService {
     });
   }
 
+  async getMyCarpools(userId: number) {
+    return this.carpoolRepository.getMyCarpools(userId);
+  }
+
+  async getCarpoolDetails(userId: number, carpoolId: string) {
+    const isMember = await this.carpoolRepository.isMember(carpoolId, userId);
+    if (!isMember) {
+      throw new ForbiddenException('You are not a member of this carpool');
+    }
+
+    const carpool = await this.carpoolRepository.getCarpool(carpoolId);
+    if (!carpool) {
+      throw new NotFoundException('Carpool not found');
+    }
+
+    return carpool;
+  }
+
   private async getOrThrow(carpoolId: string) {
     const carpool = await this.carpoolRepository.getCarpool(carpoolId);
     if (!carpool) throw new NotFoundException('Carpool not found');
@@ -374,7 +406,8 @@ export class CarpoolService {
 
   private async assertNotInProgress(carpoolId: string) {
     const carpool = await this.getOrThrow(carpoolId);
-    const activeRound = await this.carpoolRepository.getInProgressRound(carpoolId);
+    const activeRound =
+      await this.carpoolRepository.getInProgressRound(carpoolId);
     if (activeRound) {
       throw new BadRequestException(
         'Cannot modify carpool while a round is in progress',

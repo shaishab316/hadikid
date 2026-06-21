@@ -71,7 +71,7 @@ export const ChecklistStatus = {
 } as const;
 export type ChecklistStatus = keyof typeof ChecklistStatus;
 
-export const CARPOOL_QUEUE = 'carpool';
+export const CARPOOL_QUEUE = 'hadikid-carpool';
 
 export const CarpoolJob = {
   SCHEDULE_ROUND: 'schedule_round',
@@ -97,12 +97,6 @@ export const CarpoolEvent = {
   VEHICLE_LOCATION_UPDATED: 'carpool.vehicle.location.updated',
 } as const;
 export type CarpoolEvent = (typeof CarpoolEvent)[keyof typeof CarpoolEvent];
-
-export const CarpoolRedisKey = {
-  vehicleLocation: (carpoolId: string) => `carpool:${carpoolId}:vehicle`,
-  roundJobId: (roundId: string, suffix: string) =>
-    `carpool:round:${roundId}:job:${suffix}`,
-} as const;
 
 export const CarpoolInclude = {
   pickup: { omit: LocationOmit },

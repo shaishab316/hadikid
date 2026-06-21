@@ -28,6 +28,7 @@ import { ConversationModule } from './modules/conversation/conversation.module';
 import { ChildModule } from './modules/child/child.module';
 import { ContactModule } from './modules/contact/contact.module';
 import { CarpoolModule } from './modules/carpool/carpool.module';
+import { CARPOOL_QUEUE } from './modules/carpool/carpool.constant';
 
 @Module({
   imports: [
@@ -45,6 +46,10 @@ import { CarpoolModule } from './modules/carpool/carpool.module';
     }),
     BullBoardModule.forFeature({
       name: NOTIFICATION_QUEUE,
+      adapter: BullMQAdapter,
+    }),
+    BullBoardModule.forFeature({
+      name: CARPOOL_QUEUE,
       adapter: BullMQAdapter,
     }),
     ThrottlerModule.forRoot(getThrottlerConfig()),

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   Param,
   Patch,
   Post,
@@ -20,6 +21,31 @@ import { UpdateChecklistDto } from './dto/checklist-update.dto';
 @UseGuards(JwtGuard)
 export class CarpoolController {
   constructor(private readonly carpoolService: CarpoolService) {}
+
+  @Get()
+  async getMyCarpools(
+    @CurrentUser('id') userId: number,
+  ): Promise<ApiResponse> {
+    const data = await this.carpoolService.getMyCarpools(userId);
+
+    return {
+      message: 'Carpools retrieved successfully',
+      data,
+    };
+  }
+
+  @Get(':carpoolId')
+  async getCarpoolDetails(
+    @CurrentUser('id') userId: number,
+    @Param('carpoolId') carpoolId: string,
+  ): Promise<ApiResponse> {
+    const data = await this.carpoolService.getCarpoolDetails(userId, carpoolId);
+
+    return {
+      message: 'Carpool details retrieved successfully',
+      data,
+    };
+  }
 
   @Post()
   async createCarpool(

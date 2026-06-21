@@ -31,6 +31,24 @@ export class CarpoolRepository {
     });
   }
 
+  async getMyCarpools(userId: number) {
+    return this.prisma.carpool.findMany({
+      where: {
+        isDeleted: false,
+        members: {
+          some: {
+            userId,
+            leftAt: null,
+          },
+        },
+      },
+      include: CarpoolInclude,
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
   async verifyChildrenBelongToUser(userId: number, childrenIds: string[]) {
     const count = await this.prisma.child.count({
       where: { id: { in: childrenIds }, parentId: userId },
@@ -73,15 +91,15 @@ export class CarpoolRepository {
   }
 
   async getCarpoolConversationId(carpoolId: string): Promise<string | null> {
-    const conversation = await this.prisma.conversation.findFirst({
-      where: {
-        carpool: {
-          id: carpoolId,
-        },
-      },
+    const carpool = await this.prisma.carpool.findUnique({
+      where: { id: carpoolId },
     });
 
-    return conversation?.id ?? null;
+    if (!carpool) {
+      throw new Error(`Carpool not found`);
+    }
+
+    return carpool.conversationId;
   }
 
   async createCarpool(userId: number, dto: CreateCarpoolDto) {

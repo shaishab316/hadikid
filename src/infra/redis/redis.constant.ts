@@ -7,4 +7,10 @@ export const CACHE_KEY = {
   TOKEN: {
     REFRESH: (userId: string) => `hadikid:token:refresh:${userId}`,
   },
+  CARPOOL: {
+    ROUND_JOB: (roundId: string, suffix: string) =>
+      `hadikid:carpool:round:${roundId}:job:${suffix}`,
+    VEHICLE_LOCATION: (carpoolId: string) =>
+      `hadikid:carpool:${carpoolId}:vehicle`,
+  },
 } as const;

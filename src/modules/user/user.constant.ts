@@ -31,6 +31,7 @@ export const UserSelect = {
   rating: true,
   ratingCount: true,
   status: false,
+  createdAt: true,
 } as const satisfies Prisma.UserSelect;
 
 export const UserRole = {

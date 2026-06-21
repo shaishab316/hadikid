@@ -102,6 +102,7 @@ export class ProfileRepository {
       where: { id: targetUserId },
       select: {
         ...UserSelect,
+
         school: {
           include: {
             banner: { select: imgSelect },
