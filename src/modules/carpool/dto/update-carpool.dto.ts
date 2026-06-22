@@ -6,6 +6,7 @@ export const UpdateCarpoolSchema = CreateCarpoolSchema.pick({
   notes: true,
   pickupAddress: true,
   dropoffAddress: true,
+  memberIds: true,
 }).partial();
 
 export class UpdateCarpoolDto extends createZodDto(UpdateCarpoolSchema) {}

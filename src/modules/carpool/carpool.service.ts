@@ -106,6 +106,25 @@ export class CarpoolService {
       changedFields,
     });
 
+    if (dto.memberIds && dto.memberIds.length > 0) {
+      for (const memberId of dto.memberIds) {
+        if (memberId === userId) {
+          continue;
+        }
+
+        try {
+          await this.inviteMember(userId, carpool.id, {
+            userId: memberId,
+            message: 'You have been invited to join this carpool.',
+          });
+        } catch (error) {
+          this.logger.warn(
+            `Failed to send default invitation to user ${memberId} on carpool creation: ${error.message}`,
+          );
+        }
+      }
+    }
+
     return carpool;
   }
 
@@ -543,9 +562,10 @@ export class CarpoolService {
       `Round ${round.id} (${type}) created for carpool ${carpoolId} at ${nextAt.toISOString()}`,
     );
 
-    const ownerId = carpool.members.find(
-      (m) => m.role === CarpoolRole.OWNER,
-    )?.userId || carpool.driverId || 0;
+    const ownerId =
+      carpool.members.find((m) => m.role === CarpoolRole.OWNER)?.userId ||
+      carpool.driverId ||
+      0;
 
     this.eventEmitter.emit(CarpoolEvent.ROUND_CREATED, {
       carpoolId,
