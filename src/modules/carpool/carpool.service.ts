@@ -120,6 +120,7 @@ export class CarpoolService {
       await this.carpoolRepository.getScheduledRounds(carpoolId);
     for (const round of scheduledRounds) {
       await this.cancelRoundJobs(round.id);
+      await this.carpoolRepository.cancelRound(round.id);
     }
 
     await this.carpoolRepository.softDeleteCarpool(carpoolId);
@@ -342,6 +343,7 @@ export class CarpoolService {
       roundId,
       carpoolTitle: round.carpool.title,
       type: round.type,
+      driverId: userId,
       memberIds,
     });
 
@@ -369,7 +371,11 @@ export class CarpoolService {
     dto: UpdateChecklistBatchDto,
   ) {
     const memberId = await this.getMemberId(roundId, userId);
-    return this.carpoolRepository.updateDropoffChecklist(roundId, memberId, dto);
+    return this.carpoolRepository.updateDropoffChecklist(
+      roundId,
+      memberId,
+      dto,
+    );
   }
 
   async updateVehicleLocation(userId: number, dto: UpdateVehicleLocationDto) {
@@ -480,24 +486,81 @@ export class CarpoolService {
     return member.id;
   }
 
+  /**
+   * Creates a SCHEDULED round in the DB immediately (so the client can see
+   * the upcoming round right away), then queues BullMQ reminder jobs.
+   *
+   * If `scheduledAt` is in the past we advance through the repeat rule until
+   * we find the next future occurrence.  If there is none (ONCE / rule ended)
+   * we log and return without creating anything.
+   */
   async scheduleNextRound(
     carpoolId: string,
     scheduledAt: Date,
     type: RoundType,
   ) {
-    const delay = scheduledAt.getTime() - Date.now();
-    if (delay < 0) {
-      this.logger.warn(`Skipping past round for carpool ${carpoolId}`);
+    const carpool = await this.carpoolRepository.getCarpool(carpoolId);
+    if (!carpool) {
+      this.logger.warn(`Carpool not found for carpool ${carpoolId}`);
       return;
     }
 
-    const timeStr = scheduledAt.toISOString().replace(/:/g, '-');
+    // ── Advance past dates ────────────────────────────────────────────────
+    let nextAt: Date | null = new Date(scheduledAt);
 
-    const roundJob = await this.carpoolQueue.add(
-      CarpoolJob.SCHEDULE_ROUND,
-      { carpoolId, scheduledAt: scheduledAt.toISOString(), type },
-      { delay, jobId: `round-${carpoolId}-${timeStr}` },
+    if (nextAt.getTime() <= Date.now()) {
+      this.logger.warn(
+        `scheduledAt ${nextAt.toISOString()} is in the past for carpool ${carpoolId}, finding next future occurrence`,
+      );
+
+      if (!carpool.repeatRule) {
+        this.logger.warn(
+          `No repeat rule found for carpool ${carpoolId}, cannot advance past date`,
+        );
+        return;
+      }
+
+      while (nextAt && nextAt.getTime() <= Date.now()) {
+        nextAt = this.calculateNextOccurrence(carpool.repeatRule, nextAt);
+      }
+
+      if (!nextAt) {
+        this.logger.warn(
+          `No upcoming occurrence for carpool ${carpoolId} (ONCE or rule ended)`,
+        );
+        return;
+      }
+    }
+
+    // ── Create the round in DB immediately ───────────────────────────────
+    const round = await this.carpoolRepository.createRound(
+      carpoolId,
+      nextAt,
+      type,
     );
+
+    this.logger.log(
+      `Round ${round.id} (${type}) created for carpool ${carpoolId} at ${nextAt.toISOString()}`,
+    );
+
+    const ownerId = carpool.members.find(
+      (m) => m.role === CarpoolRole.OWNER,
+    )?.userId || carpool.driverId || 0;
+
+    this.eventEmitter.emit(CarpoolEvent.ROUND_CREATED, {
+      carpoolId,
+      roundId: round.id,
+      carpoolTitle: carpool.title ?? '',
+      type,
+      scheduledAt: nextAt,
+      memberIds: carpool.members.map((m) => m.userId),
+      driverId: round.driverId ?? undefined,
+      ownerId,
+    });
+
+    // ── Queue reminder notifications ──────────────────────────────────────
+    const memberIds = carpool.members.map((m) => m.userId);
+    const delay = nextAt.getTime() - Date.now();
 
     const delay30 = delay - 30 * 60 * 1000;
     if (delay30 > 0) {
@@ -505,15 +568,16 @@ export class CarpoolService {
         CarpoolJob.NOTIFY_BEFORE_30,
         {
           carpoolId,
-          roundId: '',
-          carpoolTitle: '',
-          scheduledAt: scheduledAt.toISOString(),
+          roundId: round.id,
+          carpoolTitle: carpool.title ?? '',
+          scheduledAt: nextAt.toISOString(),
           minutesBefore: 30,
-          memberIds: [],
+          memberIds,
         },
         {
           delay: delay30,
-          jobId: `reminder30-${carpoolId}-${timeStr}`,
+          jobId: `reminder30-${round.id}`,
+          removeOnComplete: true,
         },
       );
     }
@@ -524,33 +588,131 @@ export class CarpoolService {
         CarpoolJob.NOTIFY_BEFORE_15,
         {
           carpoolId,
-          roundId: '',
-          carpoolTitle: '',
-          scheduledAt: scheduledAt.toISOString(),
+          roundId: round.id,
+          carpoolTitle: carpool.title ?? '',
+          scheduledAt: nextAt.toISOString(),
           minutesBefore: 15,
-          memberIds: [],
+          memberIds,
         },
         {
           delay: delay15,
-          jobId: `reminder15-${carpoolId}-${timeStr}`,
+          jobId: `reminder15-${round.id}`,
+          removeOnComplete: true,
         },
       );
     }
 
-    this.logger.log(
-      `Scheduled round job ${roundJob.id} for carpool ${carpoolId} at ${scheduledAt.toISOString()}`,
-    );
+    return round;
   }
 
+  /**
+   * Called after a round completes.  Calculates the next occurrence from the
+   * completed round's scheduledAt and creates a new SCHEDULED round in DB.
+   */
   private async scheduleNextRoundAfter(
     carpoolId: string,
     lastScheduledAt: Date,
     lastType: RoundType,
   ) {
-    const nextAt = new Date(lastScheduledAt);
-    nextAt.setDate(nextAt.getDate() + 1);
+    const carpool = await this.carpoolRepository.getCarpool(carpoolId);
+    if (!carpool || !carpool.repeatRule) {
+      this.logger.warn(
+        `Could not schedule next round after for carpool ${carpoolId}: rule not found`,
+      );
+      return;
+    }
+
+    const nextAt = this.calculateNextOccurrence(
+      carpool.repeatRule,
+      lastScheduledAt,
+    );
+
+    if (!nextAt) {
+      this.logger.log(
+        `No more rounds to schedule for carpool ${carpoolId} (end of recurrence or ONCE)`,
+      );
+      return;
+    }
 
     await this.scheduleNextRound(carpoolId, nextAt, lastType);
+  }
+
+  /**
+   * Returns the next Date after `currentDate` that satisfies the repeat rule,
+   * with the rule's `timeOfDay` (HH:MM UTC) applied to it.
+   * Returns null when the rule is exhausted (ONCE or past endDate).
+   */
+  private calculateNextOccurrence(
+    repeatRule: {
+      frequency: string;
+      byDay?: string | null;
+      timeOfDay?: string | null;
+      endDate?: Date | null;
+    },
+    currentDate: Date,
+  ): Date | null {
+    if (repeatRule.frequency === 'ONCE') {
+      return null;
+    }
+
+    // Work on a date-only copy (strip time so day arithmetic is clean)
+    const nextDate = new Date(currentDate);
+
+    if (repeatRule.frequency === 'DAILY') {
+      nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+    } else if (repeatRule.frequency === 'CUSTOM') {
+      if (!repeatRule.byDay) {
+        nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+      } else {
+        const dayMap: Record<string, number> = {
+          SU: 0,
+          MO: 1,
+          TU: 2,
+          WE: 3,
+          TH: 4,
+          FR: 5,
+          SA: 6,
+        };
+        const allowedDays = repeatRule.byDay
+          .split(',')
+          .map((d) => dayMap[d.trim()])
+          .filter((d) => d !== undefined);
+
+        if (allowedDays.length === 0) {
+          nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+        } else {
+          do {
+            nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+          } while (!allowedDays.includes(nextDate.getUTCDay()));
+        }
+      }
+    } else {
+      // Fallback: treat unknown frequencies as daily
+      nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+    }
+
+    // ── Apply timeOfDay from the repeat rule (HH:MM UTC) ─────────────────
+    if (repeatRule.timeOfDay) {
+      const [hh, mm] = repeatRule.timeOfDay.split(':').map(Number);
+      nextDate.setUTCHours(hh ?? 0, mm ?? 0, 0, 0);
+    } else {
+      // Preserve the original time from currentDate if no timeOfDay set
+      nextDate.setUTCHours(
+        currentDate.getUTCHours(),
+        currentDate.getUTCMinutes(),
+        0,
+        0,
+      );
+    }
+
+    if (
+      repeatRule.endDate &&
+      nextDate.getTime() > new Date(repeatRule.endDate).getTime()
+    ) {
+      return null;
+    }
+
+    return nextDate;
   }
 
   private async cancelRoundJobs(roundId: string) {

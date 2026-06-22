@@ -11,6 +11,7 @@ import type {
   CarpoolInviteWithdrawnEvent,
   CarpoolMemberInvitedEvent,
   CarpoolMemberLeftEvent,
+  CarpoolRoundCreatedEvent,
   CarpoolRoundCompletedEvent,
   CarpoolRoundReminderEvent,
   CarpoolRoundStartedEvent,
@@ -107,7 +108,7 @@ export class CarpoolNotificationListener {
     await this.notify(
       othersToNotify,
       NotificationType.CARPOOL_UPDATED,
-      '@@@@@@@@@@@@@@@@️ Carpool Cancelled',
+      '🚫 Carpool Cancelled',
       `The carpool "${title}" has been cancelled by the owner.`,
       '/carpools',
       { carpoolId },
@@ -314,13 +315,35 @@ export class CarpoolNotificationListener {
     );
   }
 
-  @OnEvent(CarpoolEvent.ROUND_STARTED)
-  async onRoundReminder(payload: CarpoolRoundReminderEvent) {
-    if (!('minutesBefore' in payload)) return;
+  @OnEvent(CarpoolEvent.ROUND_CREATED)
+  async onRoundCreated({
+    carpoolId,
+    roundId,
+    carpoolTitle,
+    type,
+    scheduledAt,
+    memberIds,
+  }: CarpoolRoundCreatedEvent) {
+    const tripType = type === 'PICKUP' ? 'Pickup' : 'Drop-off';
 
-    const { carpoolId, roundId, carpoolTitle, minutesBefore, memberIds } =
-      payload;
+    await this.notify(
+      memberIds,
+      NotificationType.CARPOOL_UPDATED,
+      `New ${tripType} Trip Scheduled`,
+      `A new ${type.toLowerCase()} trip for "${carpoolTitle}" has been scheduled for ${scheduledAt.toLocaleString()}.`,
+      `/carpools/${carpoolId}/rounds/${roundId}`,
+      { carpoolId, roundId, type },
+    );
+  }
 
+  @OnEvent(CarpoolEvent.ROUND_REMINDER)
+  async onRoundReminder({
+    carpoolId,
+    roundId,
+    carpoolTitle,
+    minutesBefore,
+    memberIds,
+  }: CarpoolRoundReminderEvent) {
     await this.notify(
       memberIds,
       NotificationType.CARPOOL_UPDATED,

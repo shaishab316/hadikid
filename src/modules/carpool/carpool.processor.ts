@@ -3,14 +3,7 @@ import { Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Job } from 'bullmq';
 import { CARPOOL_QUEUE, CarpoolEvent, CarpoolJob } from './carpool.constant';
-import { CarpoolRepository } from './repositories/carpool.repository';
 import { CarpoolRoundReminderEvent } from './carpool.interface';
-
-export interface ScheduleRoundJobData {
-  carpoolId: string;
-  scheduledAt: string;
-  type: 'PICKUP' | 'DROPOFF';
-}
 
 export interface RoundReminderJobData {
   carpoolId: string;
@@ -25,18 +18,14 @@ export interface RoundReminderJobData {
 export class CarpoolProcessor extends WorkerHost {
   private readonly logger = new Logger(CarpoolProcessor.name);
 
-  constructor(
-    private readonly carpoolRepository: CarpoolRepository,
-    private readonly eventEmitter: EventEmitter2,
-  ) {
+  // CarpoolRepository removed — rounds are now created directly in
+  // CarpoolService.scheduleNextRound(), not via a BullMQ job.
+  constructor(private readonly eventEmitter: EventEmitter2) {
     super();
   }
 
   async process(job: Job) {
     switch (job.name) {
-      case CarpoolJob.SCHEDULE_ROUND:
-        return this.handleScheduleRound(job.data as ScheduleRoundJobData);
-
       case CarpoolJob.NOTIFY_BEFORE_30:
       case CarpoolJob.NOTIFY_BEFORE_15:
         return this.handleRoundReminder(job.data as RoundReminderJobData);
@@ -46,21 +35,6 @@ export class CarpoolProcessor extends WorkerHost {
     }
   }
 
-  private async handleScheduleRound(data: ScheduleRoundJobData) {
-    this.logger.log(`Creating round for carpool ${data.carpoolId}`);
-
-    const scheduledAt = new Date(data.scheduledAt);
-    const round = await this.carpoolRepository.createRound(
-      data.carpoolId,
-      scheduledAt,
-      data.type,
-    );
-
-    this.logger.log(`Round ${round.id} created for carpool ${data.carpoolId}`);
-    return round;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/require-await
   private async handleRoundReminder(data: RoundReminderJobData) {
     this.logger.log(
       `Sending ${data.minutesBefore}-min reminder for round ${data.roundId}`,
@@ -75,6 +49,8 @@ export class CarpoolProcessor extends WorkerHost {
       memberIds: data.memberIds,
     };
 
-    this.eventEmitter.emit(CarpoolEvent.ROUND_STARTED, payload);
+    // Emit ROUND_REMINDER — not ROUND_STARTED — so the correct
+    // onRoundReminder handler fires in the notification listener.
+    this.eventEmitter.emit(CarpoolEvent.ROUND_REMINDER, payload);
   }
 }

@@ -406,15 +406,6 @@ export class CarpoolRepository {
             unreadCount: 0,
           },
         });
-
-        await tx.conversationMessage.create({
-          data: {
-            conversationId: carpool.conversationId,
-            senderId: userId,
-            type: ConversationMessageType.SYSTEM,
-            content: `'${member.user.name}' joined this conversation.`,
-          },
-        });
       }
 
       return member;

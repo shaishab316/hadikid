@@ -87,7 +87,19 @@ export interface CarpoolRoundCompletedEvent {
   roundId: string;
   carpoolTitle: string;
   type: 'PICKUP' | 'DROPOFF';
+  driverId?: number;
   memberIds: number[];
+}
+
+export interface CarpoolRoundCreatedEvent {
+  carpoolId: string;
+  roundId: string;
+  carpoolTitle: string;
+  type: 'PICKUP' | 'DROPOFF';
+  scheduledAt: Date;
+  memberIds: number[];
+  driverId?: number;
+  ownerId: number;
 }
 
 export interface CarpoolRoundReminderEvent {
