@@ -50,7 +50,7 @@ export class OneSignalService implements INotificationService {
 
       if (!player_ids.length) {
         this.logger.warn(
-          `@@@@@ No valid OneSignal player IDs found for users: [${data.userIds.join(', ')}]`,
+          `No valid OneSignal player IDs found for users: [${data.userIds.join(', ')}]`,
         );
         return;
       }

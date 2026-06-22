@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { resolveLocation } from '@/modules/address/address.constant';
 import {
   CarpoolInclude,
+  CarpoolSelectForInvited,
   CarpoolInviteStatus,
   CarpoolRole,
   CarpoolSearchableFields,
@@ -20,6 +21,7 @@ import { UpdateChecklistDto } from '../dto/checklist-update.dto';
 import { QueryDefaultDto } from '@/common/dto/sharedDtoSchema';
 import { Prisma } from '@prisma/client';
 import { ConversationMessageType } from '@/modules/conversation/conversation.constant';
+import { calculateDistanceInKm } from '@/common/helpers';
 
 @Injectable()
 export class CarpoolRepository {
@@ -71,6 +73,12 @@ export class CarpoolRepository {
   async getIncomingInvites(userId: number, query: QueryDefaultDto) {
     const { limit, page, search } = query;
 
+    const location = await this.prisma.location.findUnique({
+      where: {
+        userId,
+      },
+    });
+
     const where: Prisma.CarpoolInviteWhereInput = {
       userId,
       status: CarpoolInviteStatus.PENDING,
@@ -86,12 +94,12 @@ export class CarpoolRepository {
       };
     }
 
-    return await Promise.all([
+    const [data, total] = await Promise.all([
       this.prisma.carpoolInvite.findMany({
         where,
-        include: {
+        select: {
           carpool: {
-            include: CarpoolInclude,
+            select: CarpoolSelectForInvited,
           },
         },
         orderBy: {
@@ -102,6 +110,38 @@ export class CarpoolRepository {
       }),
       this.prisma.carpoolInvite.count({ where }),
     ]);
+
+    return [
+      data.map(({ carpool: { members, ...carpool } }) => {
+        let distanceKm = 0;
+
+        if (
+          location?.latitude != null &&
+          location?.longitude != null &&
+          carpool.pickup?.latitude != null &&
+          carpool.pickup?.longitude != null
+        ) {
+          const rawDistance = calculateDistanceInKm(
+            {
+              lat: location.latitude,
+              lon: location.longitude,
+            },
+            {
+              lat: carpool.pickup.latitude,
+              lon: carpool.pickup.longitude,
+            },
+          );
+          distanceKm = Math.round(rawDistance * 100) / 100;
+        }
+
+        return {
+          ...carpool,
+          owner: members[0].user,
+          distanceKm,
+        };
+      }),
+      total,
+    ];
   }
 
   async verifyChildrenBelongToUser(userId: number, childrenIds: string[]) {

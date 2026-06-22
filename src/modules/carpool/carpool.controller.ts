@@ -51,14 +51,14 @@ export class CarpoolController {
     @CurrentUser('id') userId: number,
     @Query() query: QueryDefaultDto,
   ): Promise<ApiResponse> {
-    const [data, total] = await this.carpoolService.getIncomingInvites(
-      userId,
-      query,
-    );
+    const data = await this.carpoolService.getIncomingInvites(userId, query);
+
+    const carpool = data[0];
+    const total = data[1] as number;
 
     return {
       message: 'Incoming carpool invitations retrieved successfully',
-      data,
+      data: carpool,
       pagination: {
         limit: query.limit,
         page: query.page,

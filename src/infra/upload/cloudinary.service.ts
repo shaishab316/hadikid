@@ -67,7 +67,7 @@ export class CloudinaryService {
   }
 
   async deleteFile(publicId: string): Promise<void> {
-    this.logger.log(`@@@@@ Deleting file: ${publicId}`);
+    this.logger.log(`Deleting file: ${publicId}`);
     try {
       await cloudinary.uploader.destroy(publicId);
       this.logger.log(`File deleted: ${publicId}`);

@@ -164,6 +164,21 @@ export const CarpoolInclude = {
   },
 } as const satisfies Prisma.CarpoolInclude;
 
+export const CarpoolSelectForInvited = {
+  id: true,
+  title: true,
+  pickup: { omit: LocationOmit },
+  dropoff: { omit: LocationOmit },
+  members: {
+    where: {
+      role: 'OWNER',
+    },
+    select: {
+      user: { select: UserMinimalSelect },
+    },
+  },
+} as const satisfies Prisma.CarpoolSelect;
+
 export const RoundInclude = {
   carpool: {
     include: {
