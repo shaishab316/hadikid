@@ -250,6 +250,13 @@ export class UserRepository {
             },
           },
         },
+
+        _count: {
+          select: {
+            driverCarpools: true,
+            children: true,
+          },
+        },
       },
     });
 

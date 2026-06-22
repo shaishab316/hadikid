@@ -76,6 +76,7 @@ export const ChecklistStatus = {
   PENDING: 'PENDING',
   PRESENT: 'PRESENT',
   ABSENT: 'ABSENT',
+  UNATTENDED: 'UNATTENDED',
 } as const;
 export type ChecklistStatus = keyof typeof ChecklistStatus;
 
@@ -86,7 +87,7 @@ export const CarpoolJob = {
   NOTIFY_BEFORE_30: 'notify_before_30',
   NOTIFY_BEFORE_15: 'notify_before_15',
 } as const;
-export type CarpoolJob = (typeof CarpoolJob)[keyof typeof CarpoolJob];
+export type CarpoolJob = keyof typeof CarpoolJob;
 
 export const CarpoolEvent = {
   CREATED: 'carpool.created',
@@ -104,9 +105,32 @@ export const CarpoolEvent = {
   ROUND_CANCELLED: 'carpool.round.cancelled',
   VEHICLE_LOCATION_UPDATED: 'carpool.vehicle.location.updated',
 } as const;
-export type CarpoolEvent = (typeof CarpoolEvent)[keyof typeof CarpoolEvent];
+export type CarpoolEvent = keyof typeof CarpoolEvent;
+
+const checklistSelect = {
+  child: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+  member: {
+    select: {
+      user: {
+        select: { name: true },
+      },
+    },
+  },
+  status: true,
+  note: true,
+} as const satisfies Prisma.CarpoolRoundPickupChecklistSelect;
 
 export const CarpoolInclude = {
+  driver: {
+    select: {
+      name: true,
+    },
+  },
   pickup: { omit: LocationOmit },
   dropoff: { omit: LocationOmit },
   repeatRule: true,
@@ -128,30 +152,10 @@ export const CarpoolInclude = {
         select: UserMinimalSelect,
       },
       dropoffChecklists: {
-        select: {
-          member: {
-            select: {
-              user: {
-                select: UserMinimalSelect,
-              },
-            },
-          },
-          status: true,
-          note: true,
-        },
+        select: checklistSelect,
       },
       pickupChecklists: {
-        select: {
-          member: {
-            select: {
-              user: {
-                select: UserMinimalSelect,
-              },
-            },
-          },
-          status: true,
-          note: true,
-        },
+        select: checklistSelect,
       },
     },
   },

@@ -10,3 +10,9 @@ export const UpdateChecklistSchema = z.object({
 });
 
 export class UpdateChecklistDto extends createZodDto(UpdateChecklistSchema) {}
+
+export const UpdateChecklistBatchSchema = z.array(UpdateChecklistSchema);
+
+export class UpdateChecklistBatchDto extends createZodDto(
+  UpdateChecklistBatchSchema,
+) {}

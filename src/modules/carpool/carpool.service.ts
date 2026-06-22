@@ -22,7 +22,10 @@ import {
 import { CreateCarpoolDto } from './dto/create-carpool.dto';
 import { UpdateCarpoolDto } from './dto/update-carpool.dto';
 import { InviteMemberDto } from './dto/invite-carpool.dto';
-import { UpdateChecklistDto } from './dto/checklist-update.dto';
+import {
+  UpdateChecklistDto,
+  UpdateChecklistBatchDto,
+} from './dto/checklist-update.dto';
 import { UpdateVehicleLocationDto } from './dto/update-vehicle-location.dto';
 import { CACHE_KEY } from '@/infra/redis/redis.constant';
 import { QueryDefaultDto } from '@/common/dto/sharedDtoSchema';
@@ -352,22 +355,24 @@ export class CarpoolService {
   async updatePickupChecklist(
     userId: number,
     roundId: string,
-    dto: UpdateChecklistDto,
+    dto: UpdateChecklistBatchDto,
   ) {
-    const memberId = await this.getMemberId(roundId, userId);
-    return this.carpoolRepository.updatePickupChecklist(roundId, memberId, dto);
+    await this.getMemberId(roundId, userId);
+    return this.carpoolRepository.updatePickupChecklist(
+      roundId,
+      dto as unknown as UpdateChecklistDto[],
+    );
   }
 
   async updateDropoffChecklist(
     userId: number,
     roundId: string,
-    dto: UpdateChecklistDto,
+    dto: UpdateChecklistBatchDto,
   ) {
-    const memberId = await this.getMemberId(roundId, userId);
+    await this.getMemberId(roundId, userId);
     return this.carpoolRepository.updateDropoffChecklist(
       roundId,
-      memberId,
-      dto,
+      dto as unknown as UpdateChecklistDto[],
     );
   }
 

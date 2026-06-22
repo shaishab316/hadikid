@@ -11,6 +11,7 @@ export const CreateCarpoolSchema = z.object({
   }).optional(),
   pickupAddress: _.address,
   dropoffAddress: _.address,
+  estimatedArrivalTime: z.string().optional(),
   date: _.date(),
   repeatRule: z
     .object({

@@ -16,7 +16,7 @@ import { ApiResponse } from '@/common/types/api-response';
 import { CreateCarpoolDto } from './dto/create-carpool.dto';
 import { UpdateCarpoolDto } from './dto/update-carpool.dto';
 import { InviteMemberDto } from './dto/invite-carpool.dto';
-import { UpdateChecklistDto } from './dto/checklist-update.dto';
+import { UpdateChecklistBatchDto } from './dto/checklist-update.dto';
 import { QueryDefaultDto } from '@/common/dto/sharedDtoSchema';
 
 @Controller('carpools')
@@ -264,7 +264,7 @@ export class CarpoolController {
   async updatePickupChecklist(
     @CurrentUser('id') userId: number,
     @Param('roundId') roundId: string,
-    @Body() dto: UpdateChecklistDto,
+    @Body() dto: UpdateChecklistBatchDto,
   ): Promise<ApiResponse> {
     const data = await this.carpoolService.updatePickupChecklist(
       userId,
@@ -282,7 +282,7 @@ export class CarpoolController {
   async updateDropoffChecklist(
     @CurrentUser('id') userId: number,
     @Param('roundId') roundId: string,
-    @Body() dto: UpdateChecklistDto,
+    @Body() dto: UpdateChecklistBatchDto,
   ): Promise<ApiResponse> {
     const data = await this.carpoolService.updateDropoffChecklist(
       userId,

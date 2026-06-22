@@ -26,6 +26,8 @@ model Carpool {
     invites    CarpoolInvite[]
     rounds     CarpoolRound[]
 
+    estimatedArrivalTime String?
+
     conversationId String?       @unique
     conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
 
