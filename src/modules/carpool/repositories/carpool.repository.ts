@@ -558,7 +558,17 @@ export class CarpoolRepository {
   ) {
     return this.prisma.carpool.update({
       where: { id: carpoolId },
-      data: { vehicleLocation: { update: { latitude, longitude } } },
+      data: {
+        vehicleLocation: {
+          upsert: {
+            create: {
+              latitude,
+              longitude,
+            },
+            update: { latitude, longitude },
+          },
+        },
+      },
     });
   }
 

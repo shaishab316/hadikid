@@ -305,7 +305,7 @@ export class CarpoolChatListener {
 
   @OnEvent(CarpoolEvent.VEHICLE_LOCATION_UPDATED)
   async onVehicleLocationUpdated(payload: CarpoolVehicleLocationUpdatedEvent) {
-    const { carpoolId, driverId, latitude, longitude } = payload;
+    const { carpoolId, latitude, longitude } = payload;
 
     this.socketGateway.emit('*', `carpool:${carpoolId}:vehicle-location`, {
       carpoolId,

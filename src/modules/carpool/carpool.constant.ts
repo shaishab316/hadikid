@@ -134,6 +134,12 @@ export const CarpoolInclude = {
   },
   pickup: { omit: LocationOmit },
   dropoff: { omit: LocationOmit },
+  vehicleLocation: {
+    select: {
+      latitude: true,
+      longitude: true,
+    },
+  },
   repeatRule: true,
   members: {
     include: {

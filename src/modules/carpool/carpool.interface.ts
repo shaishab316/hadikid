@@ -113,8 +113,6 @@ export interface CarpoolRoundReminderEvent {
 
 export interface CarpoolVehicleLocationUpdatedEvent {
   carpoolId: string;
-  driverId: number;
   latitude: number;
   longitude: number;
-  updateCount: number;
 }

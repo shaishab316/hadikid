@@ -17,20 +17,16 @@ import {
   CarpoolRole,
   RoundStatus,
   RoundType,
-  VEHICLE_LOCATION_DB_FLUSH_INTERVAL,
 } from './carpool.constant';
 import { CreateCarpoolDto } from './dto/create-carpool.dto';
 import { UpdateCarpoolDto } from './dto/update-carpool.dto';
 import { InviteMemberDto } from './dto/invite-carpool.dto';
-import {
-  UpdateChecklistDto,
-  UpdateChecklistBatchDto,
-} from './dto/checklist-update.dto';
+import { UpdateChecklistBatchDto } from './dto/checklist-update.dto';
 import { UpdateVehicleLocationDto } from './dto/update-vehicle-location.dto';
-import { CACHE_KEY } from '@/infra/redis/redis.constant';
 import { QueryDefaultDto } from '@/common/dto/sharedDtoSchema';
 import { NotificationService } from '@/infra/notification/notification.service';
 import { NotificationType } from '@/infra/notification/notification.constants';
+import { CarpoolVehicleLocationUpdatedEvent } from './carpool.interface';
 
 @Injectable()
 export class CarpoolService {
@@ -403,20 +399,8 @@ export class CarpoolService {
     dto: UpdateVehicleLocationDto,
   ) {
     const { latitude, longitude } = dto;
-    const key = CACHE_KEY.CARPOOL.VEHICLE_LOCATION(carpoolId);
 
-    const updateCount = await this.redis.getClient().incr(`${key}:count`);
-
-    await this.redis
-      .getClient()
-      .set(
-        key,
-        JSON.stringify({ latitude, longitude, updatedAt: Date.now() }),
-        'EX',
-        60 * 10,
-      );
-
-    const shouldUpdateDb = Math.floor(Math.random() * 10) + 1 === 5;
+    const shouldUpdateDb = Math.floor(Math.random() * 10) === 5;
     if (shouldUpdateDb) {
       await this.carpoolRepository.updateVehicleLocationInDb(
         carpoolId,
@@ -427,10 +411,8 @@ export class CarpoolService {
 
     this.eventEmitter.emit(CarpoolEvent.VEHICLE_LOCATION_UPDATED, {
       carpoolId,
-      driverId: userId,
       latitude,
       longitude,
-      updateCount,
     });
   }
 
