@@ -426,6 +426,10 @@ export class CarpoolService {
     return await this.carpoolRepository.getIncomingInvites(userId, query);
   }
 
+  async getOutgoingInvites(userId: number, query: QueryDefaultDto) {
+    return await this.carpoolRepository.getOutgoingInvites(userId, query);
+  }
+
   private async getOrThrow(carpoolId: string) {
     const carpool = await this.carpoolRepository.getCarpool(carpoolId);
     if (!carpool) throw new NotFoundException('Carpool not found');

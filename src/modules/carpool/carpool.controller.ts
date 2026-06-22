@@ -68,6 +68,28 @@ export class CarpoolController {
     };
   }
 
+  @Get('invites/outgoing')
+  async getOutgoingInvites(
+    @CurrentUser('id') userId: number,
+    @Query() query: QueryDefaultDto,
+  ): Promise<ApiResponse> {
+    const data = await this.carpoolService.getOutgoingInvites(userId, query);
+
+    const invites = data[0];
+    const total = data[1] as number;
+
+    return {
+      message: 'Outgoing carpool invitations retrieved successfully',
+      data: invites,
+      pagination: {
+        limit: query.limit,
+        page: query.page,
+        total,
+        totalPages: Math.ceil(total / query.limit),
+      },
+    };
+  }
+
   @Post('invites/:carpoolId/accept')
   async acceptInvite(
     @CurrentUser('id') userId: number,
@@ -90,6 +112,19 @@ export class CarpoolController {
 
     return {
       message: 'Invitation declined',
+    };
+  }
+
+  @Delete('invites/:carpoolId/:invitedUserId')
+  async withdrawInvite(
+    @CurrentUser('id') userId: number,
+    @Param('carpoolId') carpoolId: string,
+    @Param('invitedUserId') invitedUserId: string,
+  ): Promise<ApiResponse> {
+    await this.carpoolService.withdrawInvite(userId, carpoolId, +invitedUserId);
+
+    return {
+      message: 'Invitation withdrawn successfully',
     };
   }
 
@@ -184,19 +219,6 @@ export class CarpoolController {
 
     return {
       message: 'Invitation sent successfully',
-    };
-  }
-
-  @Delete(':carpoolId/invites/:invitedUserId')
-  async withdrawInvite(
-    @CurrentUser('id') userId: number,
-    @Param('carpoolId') carpoolId: string,
-    @Param('invitedUserId') invitedUserId: string,
-  ): Promise<ApiResponse> {
-    await this.carpoolService.withdrawInvite(userId, carpoolId, +invitedUserId);
-
-    return {
-      message: 'Invitation withdrawn successfully',
     };
   }
 

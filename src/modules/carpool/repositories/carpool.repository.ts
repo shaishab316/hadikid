@@ -4,6 +4,7 @@ import { resolveLocation } from '@/modules/address/address.constant';
 import {
   CarpoolInclude,
   CarpoolSelectForInvited,
+  CarpoolInviteSelectForOutgoing,
   CarpoolInviteStatus,
   CarpoolRole,
   CarpoolSearchableFields,
@@ -140,6 +141,58 @@ export class CarpoolRepository {
           distanceKm,
         };
       }),
+      total,
+    ];
+  }
+
+  async getOutgoingInvites(userId: number, query: QueryDefaultDto) {
+    const { limit, page, search } = query;
+
+    const where: Prisma.CarpoolInviteWhereInput = {
+      carpool: {
+        isDeleted: false,
+        members: {
+          some: {
+            userId,
+            role: CarpoolRole.OWNER,
+          },
+        },
+      },
+    };
+
+    if (search) {
+      where.OR = [
+        {
+          carpool: {
+            title: { contains: search, mode: 'insensitive' },
+          },
+        },
+        {
+          user: {
+            name: { contains: search, mode: 'insensitive' },
+          },
+        },
+      ];
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.carpoolInvite.findMany({
+        where,
+        select: CarpoolInviteSelectForOutgoing,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: limit,
+        skip: (page - 1) * limit,
+      }),
+      this.prisma.carpoolInvite.count({ where }),
+    ]);
+
+    return [
+      data.map(({ carpool, user }) => ({
+        ...carpool,
+        user,
+      })),
       total,
     ];
   }
@@ -304,9 +357,8 @@ export class CarpoolRepository {
   }
 
   async withdrawInvite(carpoolId: string, invitedUserId: number) {
-    return this.prisma.carpoolInvite.update({
+    return this.prisma.carpoolInvite.delete({
       where: { carpoolId_userId: { carpoolId, userId: invitedUserId } },
-      data: { status: CarpoolInviteStatus.CANCELLED },
     });
   }
 
