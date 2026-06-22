@@ -13,6 +13,7 @@ import type {
   CarpoolRoundCreatedEvent,
   CarpoolRoundStartedEvent,
   CarpoolRoundCompletedEvent,
+  CarpoolVehicleLocationUpdatedEvent,
 } from './carpool.interface';
 import {
   ConversationMessageType,
@@ -300,5 +301,17 @@ export class CarpoolChatListener {
         `The ${tripType} trip has been completed successfully.`,
       );
     }
+  }
+
+  @OnEvent(CarpoolEvent.VEHICLE_LOCATION_UPDATED)
+  async onVehicleLocationUpdated(payload: CarpoolVehicleLocationUpdatedEvent) {
+    const { carpoolId, driverId, latitude, longitude } = payload;
+
+    this.socketGateway.emit('*', `carpool:${carpoolId}:vehicle-location`, {
+      carpoolId,
+      latitude,
+      longitude,
+      updatedAt: new Date(),
+    });
   }
 }

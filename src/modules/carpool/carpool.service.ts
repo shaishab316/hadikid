@@ -397,8 +397,12 @@ export class CarpoolService {
     );
   }
 
-  async updateVehicleLocation(userId: number, dto: UpdateVehicleLocationDto) {
-    const { carpoolId, roundId, latitude, longitude } = dto;
+  async updateVehicleLocation(
+    userId: number,
+    carpoolId: string,
+    dto: UpdateVehicleLocationDto,
+  ) {
+    const { latitude, longitude } = dto;
     const key = CACHE_KEY.CARPOOL.VEHICLE_LOCATION(carpoolId);
 
     const updateCount = await this.redis.getClient().incr(`${key}:count`);
@@ -412,7 +416,8 @@ export class CarpoolService {
         60 * 10,
       );
 
-    if (updateCount % VEHICLE_LOCATION_DB_FLUSH_INTERVAL === 0) {
+    const shouldUpdateDb = Math.floor(Math.random() * 10) + 1 === 5;
+    if (shouldUpdateDb) {
       await this.carpoolRepository.updateVehicleLocationInDb(
         carpoolId,
         latitude,
@@ -422,7 +427,6 @@ export class CarpoolService {
 
     this.eventEmitter.emit(CarpoolEvent.VEHICLE_LOCATION_UPDATED, {
       carpoolId,
-      roundId,
       driverId: userId,
       latitude,
       longitude,

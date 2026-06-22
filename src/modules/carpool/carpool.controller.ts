@@ -18,6 +18,7 @@ import { UpdateCarpoolDto } from './dto/update-carpool.dto';
 import { InviteMemberDto } from './dto/invite-carpool.dto';
 import { UpdateChecklistBatchDto } from './dto/checklist-update.dto';
 import { QueryDefaultDto } from '@/common/dto/sharedDtoSchema';
+import { UpdateVehicleLocationDto } from './dto/update-vehicle-location.dto';
 
 @Controller('carpools')
 @UseGuards(JwtGuard)
@@ -293,6 +294,19 @@ export class CarpoolController {
     return {
       message: 'Drop-off checklist updated',
       data,
+    };
+  }
+
+  @Post(':carpoolId/vehicle-location')
+  async updateVehicleLocation(
+    @CurrentUser('id') userId: number,
+    @Body() dto: UpdateVehicleLocationDto,
+    @Param('carpoolId') carpoolId: string,
+  ): Promise<ApiResponse> {
+    await this.carpoolService.updateVehicleLocation(userId, carpoolId, dto);
+
+    return {
+      message: 'Vehicle location updated successfully',
     };
   }
 }
