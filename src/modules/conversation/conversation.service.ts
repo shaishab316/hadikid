@@ -242,6 +242,12 @@ export class ConversationService {
       message,
     );
 
+    this.socketGateway.emit(
+      '*',
+      `chat:${targetConversationId}:deliver_ack_request`,
+      { messageId: message.id, conversationId: targetConversationId },
+    );
+
     return message;
   }
 
@@ -251,21 +257,21 @@ export class ConversationService {
 
     if (!lastMessageId) return { success: true };
 
-    await this.conversationRepo.markAsRead(
+    const { senderIds } = await this.conversationRepo.markAsRead(
       conversationId,
       userId,
       lastMessageId,
     );
 
-    conversation.participants
-      .filter((p) => p.userId !== userId)
-      .forEach((p) => {
-        this.socketGateway.emit(`user:${p.userId}`, 'messages_read', {
-          conversationId,
-          userId,
-          lastSeenMessageId: lastMessageId,
-        });
+    // Notify each original sender their messages were seen
+    senderIds.forEach((senderId) => {
+      this.socketGateway.emit(`user:${senderId}`, 'messages_seen', {
+        conversationId,
+        seenByUserId: userId,
+        lastSeenMessageId: lastMessageId,
+        seenAt: new Date(),
       });
+    });
 
     return { success: true };
   }
@@ -325,5 +331,31 @@ export class ConversationService {
       image,
       unreadCount,
     };
+  }
+
+  async markDelivered(conversationId: string, userId: number) {
+    const conversation = await this.getConversation(conversationId, userId);
+
+    // Get undelivered messages in this convo not sent by current user
+    const messages = await this.conversationRepo.findUndeliveredMessages(
+      conversationId,
+      userId,
+    );
+
+    if (messages.length === 0) return { success: true };
+
+    await this.conversationRepo.markDelivered(conversationId, userId);
+
+    // Notify each sender their messages were delivered
+    const senderIds = [...new Set(messages.map((m: any) => m.senderId))];
+    senderIds.forEach((senderId: number) => {
+      this.socketGateway.emit(`user:${senderId}`, 'messages_delivered', {
+        conversationId,
+        deliveredToUserId: userId,
+        deliveredAt: new Date(),
+      });
+    });
+
+    return { success: true };
   }
 }

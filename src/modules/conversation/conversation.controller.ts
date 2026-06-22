@@ -124,4 +124,16 @@ export class ConversationController {
       message: 'Conversation marked as read',
     };
   }
+
+  @Post(':id/delivered')
+  async markDelivered(
+    @Param('id') conversationId: string,
+    @CurrentUser('id') userId: number,
+  ): Promise<ApiResponse> {
+    await this.conversationService.markDelivered(conversationId, userId);
+
+    return {
+      message: 'Messages marked as delivered',
+    };
+  }
 }

@@ -90,6 +90,10 @@ model ConversationMessage {
     replyTo   ConversationMessage?  @relation("message_replies", fields: [replyToId], references: [id], onDelete: SetNull)
     replies   ConversationMessage[] @relation("message_replies")
 
+    status      String?   @default("SENT")
+    deliveredAt DateTime?
+    seenAt      DateTime?
+
     isDeleted Boolean   @default(false)
     deletedAt DateTime?
 

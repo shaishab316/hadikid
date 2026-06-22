@@ -181,16 +181,69 @@ export class ConversationRepository {
     conversationId: string,
     userId: number,
     lastMessageId: string,
-  ) {
-    return await this.prisma.conversationParticipant.updateMany({
+  ): Promise<{ senderIds: number[] }> {
+    // Collect messages to mark seen (sent by others, status != SEEN)
+    const unread = await this.prisma.conversationMessage.findMany({
       where: {
         conversationId,
-        userId,
+        senderId: { not: userId },
+        status: { not: 'SEEN' },
+      },
+      select: { id: true, senderId: true },
+    });
+
+    if (unread.length > 0) {
+      await this.prisma.conversationMessage.updateMany({
+        where: { id: { in: unread.map((m) => m.id) } },
+        data: { status: 'SEEN', seenAt: new Date() },
+      });
+    }
+
+    await this.prisma.conversationParticipant.updateMany({
+      where: { conversationId, userId },
+      data: { unreadCount: 0, lastSeenMessageId: lastMessageId },
+    });
+
+    const senderIds = [...new Set(unread.map((m) => m.senderId))];
+    return { senderIds };
+  }
+
+  async markDelivered(conversationId: string, userId: number): Promise<void> {
+    // Find messages in this conversation NOT sent by this user that are still SENT
+    const undelivered = await this.prisma.conversationMessage.findMany({
+      where: {
+        conversationId,
+        senderId: { not: userId },
+        status: 'SENT',
+      },
+      select: { id: true, senderId: true },
+    });
+
+    if (undelivered.length === 0) return;
+
+    await this.prisma.conversationMessage.updateMany({
+      where: {
+        id: { in: undelivered.map((m) => m.id) },
       },
       data: {
-        unreadCount: 0,
-        lastSeenMessageId: lastMessageId,
+        status: 'DELIVERED',
+        deliveredAt: new Date(),
       },
+    });
+
+    // Return unique senderIds so service can notify them via socket
+    // We expose this via return value
+    return; // see service for notification logic
+  }
+
+  async findUndeliveredMessages(conversationId: string, userId: number) {
+    return this.prisma.conversationMessage.findMany({
+      where: {
+        conversationId,
+        senderId: { not: userId },
+        status: 'SENT',
+      },
+      select: { id: true, senderId: true },
     });
   }
 }
