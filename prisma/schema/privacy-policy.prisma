@@ -1,0 +1,6 @@
+model PrivacyPolicy {
+    id   String  @id
+    data String?
+
+    @@map("privacy_policies")
+}

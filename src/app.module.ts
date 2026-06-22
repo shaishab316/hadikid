@@ -29,6 +29,7 @@ import { ChildModule } from './modules/child/child.module';
 import { ContactModule } from './modules/contact/contact.module';
 import { CarpoolModule } from './modules/carpool/carpool.module';
 import { CARPOOL_QUEUE } from './modules/carpool/carpool.constant';
+import { PrivacyPolicyModule } from './modules/privacy-policy/privacy-policy.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { CARPOOL_QUEUE } from './modules/carpool/carpool.constant';
     ChildModule,
     ContactModule,
     CarpoolModule,
+    PrivacyPolicyModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: CustomThrottlerGuard },

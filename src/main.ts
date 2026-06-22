@@ -20,7 +20,6 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { BasicAuthMiddleware } from './common/middlewares/basic-auth.middleware';
 import path from 'node:path';
-import { ParseJsonBodyInterceptor } from './common/interceptors/parse-json-body.interceptor';
 import { RedisIoAdapter } from './infra/socket/redis-io.adapter';
 import { RedisService } from './infra/redis/redis.service';
 
@@ -122,7 +121,6 @@ async function bootstrap() {
   app.useGlobalInterceptors(
     new ResponseInterceptor(),
     app.get(CacheInterceptor),
-    new ParseJsonBodyInterceptor(),
   );
 
   // global exception filter
