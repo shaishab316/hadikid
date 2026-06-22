@@ -400,7 +400,7 @@ export class CarpoolService {
   ) {
     const { latitude, longitude } = dto;
 
-    const shouldUpdateDb = Math.floor(Math.random() * 10) === 5;
+    const shouldUpdateDb = Math.random() < 0.5;
     if (shouldUpdateDb) {
       await this.carpoolRepository.updateVehicleLocationInDb(
         carpoolId,
