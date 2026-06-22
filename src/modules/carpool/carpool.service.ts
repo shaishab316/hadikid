@@ -190,7 +190,9 @@ export class CarpoolService {
           type: NotificationType.WARNING,
         });
       } catch (error) {
-        this.logger.warn(`Failed to send warning notification: ${error.message}`);
+        this.logger.warn(
+          `Failed to send warning notification: ${error.message}`,
+        );
       }
 
       throw new BadRequestException('You can only invite your contacts');
@@ -357,11 +359,8 @@ export class CarpoolService {
     roundId: string,
     dto: UpdateChecklistBatchDto,
   ) {
-    await this.getMemberId(roundId, userId);
-    return this.carpoolRepository.updatePickupChecklist(
-      roundId,
-      dto as unknown as UpdateChecklistDto[],
-    );
+    const memberId = await this.getMemberId(roundId, userId);
+    return this.carpoolRepository.updatePickupChecklist(roundId, memberId, dto);
   }
 
   async updateDropoffChecklist(
@@ -369,11 +368,8 @@ export class CarpoolService {
     roundId: string,
     dto: UpdateChecklistBatchDto,
   ) {
-    await this.getMemberId(roundId, userId);
-    return this.carpoolRepository.updateDropoffChecklist(
-      roundId,
-      dto as unknown as UpdateChecklistDto[],
-    );
+    const memberId = await this.getMemberId(roundId, userId);
+    return this.carpoolRepository.updateDropoffChecklist(roundId, memberId, dto);
   }
 
   async updateVehicleLocation(userId: number, dto: UpdateVehicleLocationDto) {

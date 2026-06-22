@@ -18,7 +18,10 @@ import {
 import { CreateCarpoolDto } from '../dto/create-carpool.dto';
 import { UpdateCarpoolDto } from '../dto/update-carpool.dto';
 import { InviteMemberDto } from '../dto/invite-carpool.dto';
-import { UpdateChecklistDto } from '../dto/checklist-update.dto';
+import {
+  UpdateChecklistBatchDto,
+  UpdateChecklistDto,
+} from '../dto/checklist-update.dto';
 import { QueryDefaultDto } from '@/common/dto/sharedDtoSchema';
 import { Prisma } from '@prisma/client';
 import { ConversationMessageType } from '@/modules/conversation/conversation.constant';
@@ -520,33 +523,41 @@ export class CarpoolRepository {
   async updatePickupChecklist(
     roundId: string,
     memberId: string,
-    dto: UpdateChecklistDto,
+    dto: UpdateChecklistBatchDto,
   ) {
-    return this.prisma.carpoolRoundPickupChecklist.update({
-      where: { roundId_childId: { roundId, childId: dto.childId } },
-      data: {
-        status: dto.status,
-        note: dto.note,
-        checkedAt: new Date(),
-        memberId,
-      },
-    });
+    return this.prisma.$transaction(
+      dto.map((item) =>
+        this.prisma.carpoolRoundPickupChecklist.update({
+          where: { roundId_childId: { roundId, childId: item.childId } },
+          data: {
+            status: item.status,
+            note: item.note,
+            checkedAt: new Date(),
+            memberId,
+          },
+        }),
+      ),
+    );
   }
 
   async updateDropoffChecklist(
     roundId: string,
     memberId: string,
-    dto: UpdateChecklistDto,
+    dto: UpdateChecklistBatchDto,
   ) {
-    return this.prisma.carpoolRoundDropoffChecklist.update({
-      where: { roundId_childId: { roundId, childId: dto.childId } },
-      data: {
-        status: dto.status,
-        note: dto.note,
-        checkedAt: new Date(),
-        memberId,
-      },
-    });
+    return this.prisma.$transaction(
+      dto.map((item) =>
+        this.prisma.carpoolRoundDropoffChecklist.update({
+          where: { roundId_childId: { roundId, childId: item.childId } },
+          data: {
+            status: item.status,
+            note: item.note,
+            checkedAt: new Date(),
+            memberId,
+          },
+        }),
+      ),
+    );
   }
 
   async updateVehicleLocationInDb(
