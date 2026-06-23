@@ -25,6 +25,7 @@ model Carpool {
     members    CarpoolMember[]
     invites    CarpoolInvite[]
     rounds     CarpoolRound[]
+    reviews    Review[]
 
     estimatedArrivalTime String?
 

@@ -255,6 +255,7 @@ export class UserRepository {
           select: {
             driverCarpools: true,
             children: true,
+            carpoolMembers: true,
           },
         },
       },

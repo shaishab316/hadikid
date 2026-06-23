@@ -5,7 +5,7 @@
 model Review {
     id String @id @default(uuid())
 
-    /// DRIVER | PARENT | CARPOOL
+    ///  USER | CARPOOL
     type String
 
     rating  Decimal @db.Decimal(2, 1)
@@ -20,6 +20,7 @@ model Review {
 
     /// Optional: which carpool this review is about
     carpoolId String?
+    carpool   Carpool? @relation(fields: [carpoolId], references: [id], onDelete: SetNull)
 
     metadata Json @default("{}")
 
@@ -30,5 +31,7 @@ model Review {
     @@index([subjectId])
     @@index([type])
     @@index([carpoolId])
+    @@index([rating, subjectId])
+    @@index([rating, carpoolId])
     @@map("reviews")
 }
