@@ -16,6 +16,7 @@ import { ApiResponse } from '@/common/types/api-response';
 import { CreateCarpoolDto } from './dto/create-carpool.dto';
 import { UpdateCarpoolDto } from './dto/update-carpool.dto';
 import { InviteMemberDto } from './dto/invite-carpool.dto';
+import { AcceptInviteDto } from './dto/accept-invite.dto';
 import { UpdateChecklistBatchDto } from './dto/checklist-update.dto';
 import { QueryDefaultDto } from '@/common/dto/sharedDtoSchema';
 import { UpdateVehicleLocationDto } from './dto/update-vehicle-location.dto';
@@ -95,8 +96,9 @@ export class CarpoolController {
   async acceptInvite(
     @CurrentUser('id') userId: number,
     @Param('carpoolId') carpoolId: string,
+    @Body() dto: AcceptInviteDto,
   ): Promise<ApiResponse> {
-    const data = await this.carpoolService.acceptInvite(userId, carpoolId);
+    const data = await this.carpoolService.acceptInvite(userId, carpoolId, dto);
 
     return {
       message: 'You have joined the carpool',

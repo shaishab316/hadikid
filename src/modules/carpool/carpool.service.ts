@@ -21,6 +21,7 @@ import {
 import { CreateCarpoolDto } from './dto/create-carpool.dto';
 import { UpdateCarpoolDto } from './dto/update-carpool.dto';
 import { InviteMemberDto } from './dto/invite-carpool.dto';
+import { AcceptInviteDto } from './dto/accept-invite.dto';
 import { UpdateChecklistBatchDto } from './dto/checklist-update.dto';
 import { UpdateVehicleLocationDto } from './dto/update-vehicle-location.dto';
 import { QueryDefaultDto } from '@/common/dto/sharedDtoSchema';
@@ -149,8 +150,6 @@ export class CarpoolService {
   }
 
   async assignDriver(userId: number, carpoolId: string) {
-    await this.assertOwner(carpoolId, userId);
-
     const isMember = await this.carpoolRepository.isMember(carpoolId, userId);
     if (!isMember) {
       throw new BadRequestException('Driver must be a carpool member');
@@ -252,9 +251,29 @@ export class CarpoolService {
     });
   }
 
-  async acceptInvite(userId: number, carpoolId: string) {
+  async acceptInvite(userId: number, carpoolId: string, dto: AcceptInviteDto) {
+    const belong = await this.carpoolRepository.verifyChildrenBelongToUser(
+      userId,
+      dto.selectedChildrenIds,
+    );
+    if (!belong) {
+      throw new BadRequestException('Some children do not belong to you');
+    }
+
+    const alreadyMember = await this.carpoolRepository.isMember(
+      carpoolId,
+      userId,
+    );
+    if (alreadyMember) {
+      throw new BadRequestException('User is already a member of this carpool');
+    }
+
     const carpool = await this.getOrThrow(carpoolId);
-    const member = await this.carpoolRepository.acceptInvite(carpoolId, userId);
+    const member = await this.carpoolRepository.acceptInvite(
+      carpoolId,
+      userId,
+      dto.selectedChildrenIds,
+    );
     const memberIds = await this.carpoolRepository.getMemberUserIds(carpoolId);
     const conversationId =
       await this.carpoolRepository.getCarpoolConversationId(carpoolId);

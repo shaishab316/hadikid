@@ -1,5 +1,5 @@
 import { PrismaService } from '@/infra/prisma/prisma.service';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { resolveLocation } from '@/modules/address/address.constant';
 import {
   CarpoolInclude,
@@ -329,10 +329,25 @@ export class CarpoolRepository {
   }
 
   async assignDriver(carpoolId: string, userId: number) {
-    return this.prisma.carpool.update({
-      where: { id: carpoolId },
-      data: { driverId: userId },
-      include: CarpoolInclude,
+    return this.prisma.$transaction(async (tx) => {
+      const carpool = await tx.carpool.update({
+        where: { id: carpoolId },
+        data: { driverId: userId },
+        include: CarpoolInclude,
+      });
+
+      await tx.carpoolRound.updateMany({
+        where: {
+          carpoolId,
+          status: RoundStatus.SCHEDULED,
+          driverId: null,
+        },
+        data: {
+          driverId: userId,
+        },
+      });
+
+      return carpool;
     });
   }
 
@@ -365,15 +380,28 @@ export class CarpoolRepository {
     });
   }
 
-  async acceptInvite(carpoolId: string, userId: number) {
+  async acceptInvite(carpoolId: string, userId: number, selectedChildrenIds: string[]) {
     return this.prisma.$transaction(async (tx) => {
+      const invite = await tx.carpoolInvite.findUnique({
+        where: { carpoolId_userId: { carpoolId, userId } },
+      });
+
+      if (!invite || invite.status !== CarpoolInviteStatus.PENDING) {
+        throw new BadRequestException('Invitation is not pending or does not exist');
+      }
+
       await tx.carpoolInvite.update({
         where: { carpoolId_userId: { carpoolId, userId } },
         data: { status: CarpoolInviteStatus.ACCEPTED },
       });
 
       const member = await tx.carpoolMember.create({
-        data: { carpoolId, userId, role: CarpoolRole.MEMBER },
+        data: {
+          carpoolId,
+          userId,
+          role: CarpoolRole.MEMBER,
+          children: { connect: selectedChildrenIds.map((id) => ({ id })) },
+        },
         include: {
           user: {
             select: {
@@ -382,6 +410,34 @@ export class CarpoolRepository {
           },
         },
       });
+
+      // Update checklists for scheduled rounds
+      const scheduledRounds = await tx.carpoolRound.findMany({
+        where: { carpoolId, status: RoundStatus.SCHEDULED },
+        select: { id: true },
+      });
+
+      for (const round of scheduledRounds) {
+        for (const childId of selectedChildrenIds) {
+          await tx.carpoolRoundPickupChecklist.create({
+            data: {
+              roundId: round.id,
+              memberId: member.id,
+              childId,
+              status: ChecklistStatus.PENDING,
+            },
+          });
+
+          await tx.carpoolRoundDropoffChecklist.create({
+            data: {
+              roundId: round.id,
+              memberId: member.id,
+              childId,
+              status: ChecklistStatus.PENDING,
+            },
+          });
+        }
+      }
 
       const carpool = await tx.carpool.findUnique({
         where: { id: carpoolId },
@@ -420,9 +476,52 @@ export class CarpoolRepository {
   }
 
   async memberLeave(carpoolId: string, userId: number) {
-    return this.prisma.carpoolMember.update({
-      where: { carpoolId_userId: { carpoolId, userId } },
-      data: { leftAt: new Date() },
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Mark member as left
+      const member = await tx.carpoolMember.update({
+        where: { carpoolId_userId: { carpoolId, userId } },
+        data: { leftAt: new Date() },
+        include: { children: { select: { id: true } } },
+      });
+
+      // 2. If the user was the driver of the carpool, remove them
+      const carpool = await tx.carpool.findUnique({
+        where: { id: carpoolId },
+        select: { driverId: true },
+      });
+
+      if (carpool?.driverId === userId) {
+        await tx.carpool.update({
+          where: { id: carpoolId },
+          data: { driverId: null },
+        });
+      }
+
+      // 3. For scheduled rounds, if this user was the driver, set driverId to null
+      await tx.carpoolRound.updateMany({
+        where: { carpoolId, status: RoundStatus.SCHEDULED, driverId: userId },
+        data: { driverId: null },
+      });
+
+      // 4. Delete checklist entries for this member's children in scheduled rounds
+      const childIds = member.children.map((c) => c.id);
+      if (childIds.length > 0) {
+        await tx.carpoolRoundPickupChecklist.deleteMany({
+          where: {
+            round: { carpoolId, status: RoundStatus.SCHEDULED },
+            childId: { in: childIds },
+          },
+        });
+
+        await tx.carpoolRoundDropoffChecklist.deleteMany({
+          where: {
+            round: { carpoolId, status: RoundStatus.SCHEDULED },
+            childId: { in: childIds },
+          },
+        });
+      }
+
+      return member;
     });
   }
 
