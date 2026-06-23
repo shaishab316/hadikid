@@ -59,6 +59,19 @@ export class ConversationController {
     };
   }
 
+  @Get('support')
+  async getSupportConversation(
+    @CurrentUser('id') userId: number,
+  ): Promise<ApiResponse> {
+    const conversation =
+      await this.conversationService.getSupportConversation(userId);
+
+    return {
+      message: 'Support conversation retrieved successfully',
+      data: conversation,
+    };
+  }
+
   @Get(':id')
   async getConversation(
     @Param('id') id: string,

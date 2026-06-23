@@ -246,4 +246,39 @@ export class ConversationRepository {
       select: { id: true, senderId: true },
     });
   }
+
+  async findSupportConversation(userId: number) {
+    return await this.prisma.conversation.findFirst({
+      where: {
+        type: 'SUPPORT',
+        participants: {
+          some: { userId },
+        },
+      },
+      include: ConversationInclude,
+    });
+  }
+
+  async findByIdWithoutUserRestriction(id: string) {
+    return await this.prisma.conversation.findUnique({
+      where: { id },
+      include: ConversationInclude,
+    });
+  }
+
+  async addParticipant(conversationId: string, userId: number, role: 'ADMIN' | 'MEMBER' = 'MEMBER') {
+    return await this.prisma.conversationParticipant.upsert({
+      where: {
+        conversationId_userId: { conversationId, userId },
+      },
+      create: {
+        conversationId,
+        userId,
+        role,
+      },
+      update: {
+        leftAt: null,
+      },
+    });
+  }
 }

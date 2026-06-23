@@ -85,3 +85,11 @@ export const ConversationEvent = {
 } as const;
 
 export type ConversationEvent = keyof typeof ConversationEvent;
+
+export const ConversationType = {
+  DIRECT: 'DIRECT',
+  GROUP: 'GROUP',
+  SUPPORT: 'SUPPORT',
+} as const;
+
+export type ConversationType = keyof typeof ConversationType;

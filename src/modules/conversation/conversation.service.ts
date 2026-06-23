@@ -123,12 +123,41 @@ export class ConversationService {
   }
 
   async getConversation(id: string, userId: number) {
-    const conversation = await this.conversationRepo.findById(id, userId);
+    const conversation = await this.conversationRepo.findByIdWithoutUserRestriction(id);
     if (!conversation) {
-      throw new NotFoundException(
-        'Conversation not found or you are not a participant',
+      throw new NotFoundException('Conversation not found');
+    }
+
+    const isParticipant = conversation.participants.some(
+      (p: any) => p.userId === userId && p.leftAt === null,
+    );
+
+    if (!isParticipant) {
+      if (conversation.type === 'SUPPORT') {
+        const user = await this.userRepo.findById(userId);
+        const roles = user?.roles.map((r) => r.role) ?? [];
+        const isAdmin = roles.includes('ADMIN') || roles.includes('SUPER_ADMIN');
+        if (isAdmin) {
+          return await this.mapConversation(
+            {
+              ...conversation,
+              participants: conversation.participants.map(
+                ({ user, role, unreadCount }: any) => ({
+                  ...user,
+                  role,
+                  unreadCount,
+                }),
+              ),
+            },
+            userId,
+          );
+        }
+      }
+      throw new ForbiddenException(
+        'You are not a participant of this conversation',
       );
     }
+
     return await this.mapConversation(
       {
         ...conversation,
@@ -231,6 +260,29 @@ export class ConversationService {
             'Cannot send message. This contact is blocked.',
           );
         }
+      }
+    }
+
+    if (conversation.type === 'SUPPORT') {
+      const user = await this.userRepo.findById(userId);
+      const roles = user?.roles.map((r) => r.role) ?? [];
+      const isAdmin = roles.includes('ADMIN') || roles.includes('SUPER_ADMIN');
+
+      const isOwner = conversation.participants.some(
+        (p: any) => p.id === userId && p.role === 'OWNER',
+      );
+
+      if (!isAdmin && !isOwner) {
+        throw new ForbiddenException(
+          'You are not authorized to send messages to this support chat',
+        );
+      }
+
+      const isParticipant = conversation.participants.some(
+        (p: any) => p.id === userId,
+      );
+      if (isAdmin && !isParticipant) {
+        await this.conversationRepo.addParticipant(targetConversationId, userId, 'ADMIN');
       }
     }
 
@@ -350,5 +402,27 @@ export class ConversationService {
     });
 
     return { success: true };
+  }
+
+  async getSupportConversation(userId: number) {
+    const existing =
+      await this.conversationRepo.findSupportConversation(userId);
+    if (existing) {
+      return await this.mapConversation(existing, userId);
+    }
+
+    const conversation = await this.conversationRepo.createConversation({
+      name: 'Customer Support',
+      type: 'SUPPORT',
+      participants: [{ userId, role: 'OWNER' }],
+    });
+
+    const mapped = await this.mapConversation(conversation, userId);
+
+    this.eventEmitter.emit(ConversationEvent.CREATED, {
+      mappedConversations: [{ pId: userId, mapped }],
+    });
+
+    return mapped;
   }
 }
