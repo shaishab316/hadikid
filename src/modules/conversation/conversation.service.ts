@@ -334,7 +334,7 @@ export class ConversationService {
   }
 
   async markDelivered(conversationId: string, userId: number) {
-    const conversation = await this.getConversation(conversationId, userId);
+    await this.getConversation(conversationId, userId);
 
     // Get undelivered messages in this convo not sent by current user
     const messages = await this.conversationRepo.findUndeliveredMessages(

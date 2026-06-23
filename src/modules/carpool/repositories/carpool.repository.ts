@@ -18,13 +18,9 @@ import {
 import { CreateCarpoolDto } from '../dto/create-carpool.dto';
 import { UpdateCarpoolDto } from '../dto/update-carpool.dto';
 import { InviteMemberDto } from '../dto/invite-carpool.dto';
-import {
-  UpdateChecklistBatchDto,
-  UpdateChecklistDto,
-} from '../dto/checklist-update.dto';
+import { UpdateChecklistBatchDto } from '../dto/checklist-update.dto';
 import { QueryDefaultDto } from '@/common/dto/sharedDtoSchema';
 import { Prisma } from '@prisma/client';
-import { ConversationMessageType } from '@/modules/conversation/conversation.constant';
 import { calculateDistanceInKm } from '@/common/helpers';
 
 @Injectable()
@@ -380,14 +376,20 @@ export class CarpoolRepository {
     });
   }
 
-  async acceptInvite(carpoolId: string, userId: number, selectedChildrenIds: string[]) {
+  async acceptInvite(
+    carpoolId: string,
+    userId: number,
+    selectedChildrenIds: string[],
+  ) {
     return this.prisma.$transaction(async (tx) => {
       const invite = await tx.carpoolInvite.findUnique({
         where: { carpoolId_userId: { carpoolId, userId } },
       });
 
       if (!invite || invite.status !== CarpoolInviteStatus.PENDING) {
-        throw new BadRequestException('Invitation is not pending or does not exist');
+        throw new BadRequestException(
+          'Invitation is not pending or does not exist',
+        );
       }
 
       await tx.carpoolInvite.update({

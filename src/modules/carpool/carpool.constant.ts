@@ -1,6 +1,5 @@
 import { Carpool, Prisma } from '@prisma/client';
 import { LocationOmit } from '../address/address.constant';
-import { imgSelect } from '../media/media.constant';
 import { UserMinimalSelect } from '../user/user.constant';
 
 export const CarpoolSearchableFields = [

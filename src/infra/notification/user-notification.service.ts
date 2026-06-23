@@ -1,9 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { NotificationRepository } from './repositories/notification.repository';
-import {
-  DeleteQueryNotificationDto,
-  QueryNotificationsDto,
-} from './dto/query-notifications.dto';
+import { QueryNotificationsDto } from './dto/query-notifications.dto';
 
 @Injectable()
 export class UserNotificationService {

@@ -24,6 +24,7 @@ export class CarpoolProcessor extends WorkerHost {
     super();
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async process(job: Job) {
     switch (job.name) {
       case CarpoolJob.NOTIFY_BEFORE_30:
@@ -35,7 +36,7 @@ export class CarpoolProcessor extends WorkerHost {
     }
   }
 
-  private async handleRoundReminder(data: RoundReminderJobData) {
+  private handleRoundReminder(data: RoundReminderJobData) {
     this.logger.log(
       `Sending ${data.minutesBefore}-min reminder for round ${data.roundId}`,
     );

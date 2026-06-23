@@ -11,10 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { UserNotificationService } from './user-notification.service';
-import {
-  DeleteQueryNotificationDto,
-  QueryNotificationsDto,
-} from './dto/query-notifications.dto';
+import { QueryNotificationsDto } from './dto/query-notifications.dto';
 import { MediumThrottle } from '@/common/decorators/throttle.decorator';
 import { JwtGuard } from '@/common/guards/jwt.guard';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';

@@ -27,7 +27,6 @@ import { UpdateVehicleLocationDto } from './dto/update-vehicle-location.dto';
 import { QueryDefaultDto } from '@/common/dto/sharedDtoSchema';
 import { NotificationService } from '@/infra/notification/notification.service';
 import { NotificationType } from '@/infra/notification/notification.constants';
-import { CarpoolVehicleLocationUpdatedEvent } from './carpool.interface';
 
 @Injectable()
 export class CarpoolService {
