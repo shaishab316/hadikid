@@ -11,15 +11,16 @@ import {
   QueryConversationDto,
   QueryMessageDto,
 } from './dto/query-conversation.dto';
-import { SocketGateway } from '@/infra/socket/socket.gateway';
 import { UserRepository } from '../user/repositories/user.repository';
 import { ContactRepository } from '../contact/repositories/contact.repository';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ConversationEvent } from './conversation.constant';
 
 @Injectable()
 export class ConversationService {
   constructor(
     private readonly conversationRepo: ConversationRepository,
-    private readonly socketGateway: SocketGateway,
+    private readonly eventEmitter: EventEmitter2,
     private readonly userRepo: UserRepository,
     private readonly contactRepo: ContactRepository,
   ) {}
@@ -85,10 +86,16 @@ export class ConversationService {
       });
     }
 
-    for (const pId of uniqueParticipantIds) {
-      const mapped = await this.mapConversation(conversation, pId);
-      this.socketGateway.emit(`user:${pId}`, 'conversation_created', mapped);
-    }
+    const mappedParticipantConversations = await Promise.all(
+      uniqueParticipantIds.map(async (pId) => ({
+        pId,
+        mapped: await this.mapConversation(conversation, pId),
+      })),
+    );
+
+    this.eventEmitter.emit(ConversationEvent.CREATED, {
+      mappedConversations: mappedParticipantConversations,
+    });
 
     return await this.mapConversation(conversation, userId);
   }
@@ -198,11 +205,9 @@ export class ConversationService {
         // Notify recipient of new conversation creation
         if (userId !== recipientId) {
           const mapped = await this.mapConversation(conversation, recipientId);
-          this.socketGateway.emit(
-            `user:${recipientId}`,
-            'conversation_created',
-            mapped,
-          );
+          this.eventEmitter.emit(ConversationEvent.CREATED, {
+            mappedConversations: [{ pId: recipientId, mapped }],
+          });
         }
       }
 
@@ -236,17 +241,10 @@ export class ConversationService {
       attachmentIds,
     );
 
-    this.socketGateway.emit(
-      '*',
-      `chat:${targetConversationId}:new_message`,
+    this.eventEmitter.emit(ConversationEvent.MESSAGE_SENT, {
+      targetConversationId,
       message,
-    );
-
-    this.socketGateway.emit(
-      '*',
-      `chat:${targetConversationId}:deliver_ack_request`,
-      { messageId: message.id, conversationId: targetConversationId },
-    );
+    });
 
     return message;
   }
@@ -263,14 +261,11 @@ export class ConversationService {
       lastMessageId,
     );
 
-    // Notify each original sender their messages were seen
-    senderIds.forEach((senderId) => {
-      this.socketGateway.emit(`user:${senderId}`, 'messages_seen', {
-        conversationId,
-        seenByUserId: userId,
-        lastSeenMessageId: lastMessageId,
-        seenAt: new Date(),
-      });
+    this.eventEmitter.emit(ConversationEvent.MESSAGES_SEEN, {
+      senderIds,
+      conversationId,
+      userId,
+      lastMessageId,
     });
 
     return { success: true };
@@ -348,12 +343,10 @@ export class ConversationService {
 
     // Notify each sender their messages were delivered
     const senderIds = [...new Set(messages.map((m: any) => m.senderId))];
-    senderIds.forEach((senderId: number) => {
-      this.socketGateway.emit(`user:${senderId}`, 'messages_delivered', {
-        conversationId,
-        deliveredToUserId: userId,
-        deliveredAt: new Date(),
-      });
+    this.eventEmitter.emit(ConversationEvent.MESSAGES_DELIVERED, {
+      senderIds,
+      conversationId,
+      userId,
     });
 
     return { success: true };

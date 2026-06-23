@@ -76,3 +76,12 @@ export const ConversationMessageStatus = {
 } as const;
 
 export type ConversationMessageStatus = keyof typeof ConversationMessageStatus;
+
+export const ConversationEvent = {
+  CREATED: 'conversation.created',
+  MESSAGE_SENT: 'conversation.message.sent',
+  MESSAGES_SEEN: 'conversation.messages.seen',
+  MESSAGES_DELIVERED: 'conversation.messages.delivered',
+} as const;
+
+export type ConversationEvent = keyof typeof ConversationEvent;

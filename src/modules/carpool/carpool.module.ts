@@ -7,11 +7,13 @@ import { CARPOOL_QUEUE } from './carpool.constant';
 import { CarpoolChatListener } from './carpool-chat.listener';
 import { CarpoolNotificationListener } from './carpool-notification.listener';
 import { NotificationModule } from '@/infra/notification/notification.module';
+import { ConversationModule } from '../conversation/conversation.module';
 
 @Module({
   imports: [
     BullModule.registerQueue({ name: CARPOOL_QUEUE }),
     NotificationModule,
+    ConversationModule,
   ],
   controllers: [CarpoolController],
   providers: [

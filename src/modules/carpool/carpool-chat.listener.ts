@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
+import { OnEvent, EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '@/infra/prisma/prisma.service';
 import { CarpoolEvent } from './carpool.constant';
 import type {
@@ -18,8 +18,10 @@ import type {
 import {
   ConversationMessageType,
   MessageInclude,
+  ConversationEvent,
 } from '../conversation/conversation.constant';
 import { SocketGateway } from '@/infra/socket/socket.gateway';
+import { ConversationService } from '../conversation/conversation.service';
 
 @Injectable()
 export class CarpoolChatListener {
@@ -28,6 +30,8 @@ export class CarpoolChatListener {
   constructor(
     private readonly prisma: PrismaService,
     private readonly socketGateway: SocketGateway,
+    private readonly conversationService: ConversationService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   private async createSystemMessage(
@@ -104,6 +108,18 @@ export class CarpoolChatListener {
       ownerId,
       `Carpool "${title}" was created.`,
     );
+
+    try {
+      const mapped = await this.conversationService.getConversation(
+        conversation.id,
+        ownerId,
+      );
+      this.eventEmitter.emit(ConversationEvent.CREATED, {
+        mappedConversations: [{ pId: ownerId, mapped }],
+      });
+    } catch (err) {
+      this.logger.warn(`Failed to emit conversation created event for owner: ${err instanceof Error ? err.message : 'unknown error'}`);
+    }
 
     this.logger.log(
       `Group chat ${conversation.id} created for carpool ${carpoolId}`,

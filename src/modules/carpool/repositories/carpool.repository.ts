@@ -296,12 +296,13 @@ export class CarpoolRepository {
   }
 
   async updateCarpool(carpoolId: string, dto: UpdateCarpoolDto) {
-    const { pickupAddress, dropoffAddress, ...rest } = dto;
+    const { pickupAddress, dropoffAddress, notes, title } = dto;
 
     return this.prisma.carpool.update({
       where: { id: carpoolId },
       data: {
-        ...rest,
+        notes,
+        title,
         ...(pickupAddress && {
           pickup: { update: resolveLocation(pickupAddress) },
         }),
