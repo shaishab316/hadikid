@@ -22,37 +22,14 @@ import { BasicAuthMiddleware } from './common/middlewares/basic-auth.middleware'
 import path from 'node:path';
 import { RedisIoAdapter } from './infra/socket/redis-io.adapter';
 import { RedisService } from './infra/redis/redis.service';
+import { createLogger } from './common/config/logger.config';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   logger.log('Starting application bootstrap...');
 
-  const isDev = process.env.NODE_ENV === 'development';
-
-  const winstonLogger = WinstonModule.createLogger({
-    level: isDev ? 'debug' : 'info',
-    transports: [
-      new winston.transports.Console({
-        level: isDev ? 'debug' : 'info',
-        format: winston.format.combine(
-          winston.format.timestamp(),
-          winston.format.colorize(),
-          winston.format.simple(),
-        ),
-      }),
-      ...(!isDev
-        ? [
-            new LokiTransport({
-              host: process.env.LOKI_URL!,
-              labels: { job: 'nestjs', app: 'hadikid' },
-            }),
-          ]
-        : []),
-    ],
-  });
-
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    logger: winstonLogger,
+    logger: createLogger('app'),
   });
 
   app.set('trust proxy', 'loopback');

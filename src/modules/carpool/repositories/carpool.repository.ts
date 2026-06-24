@@ -423,9 +423,8 @@ export class CarpoolRepository {
         );
       }
 
-      await tx.carpoolInvite.update({
+      await tx.carpoolInvite.delete({
         where: { carpoolId_userId: { carpoolId, userId } },
-        data: { status: CarpoolInviteStatus.ACCEPTED },
       });
 
       const member = await tx.carpoolMember.create({
