@@ -13,6 +13,7 @@ import {
   CarpoolRole,
   RoundStatus,
   RoundType,
+  VEHICLE_LOCATION_DB_FLUSH_INTERVAL,
 } from './carpool.constant';
 import { CreateCarpoolDto } from './dto/create-carpool.dto';
 import { UpdateCarpoolDto } from './dto/update-carpool.dto';
@@ -28,12 +29,19 @@ import { NotificationType } from '@/infra/notification/notification.constants';
 export class CarpoolService {
   private readonly logger = new Logger(CarpoolService.name);
 
+  // Tracks how many location updates have been received per carpool since last DB flush
+  private readonly vehicleLocationUpdateCount = new Map<string, number>();
+
   constructor(
     private readonly carpoolRepository: CarpoolRepository,
     private readonly eventEmitter: EventEmitter2,
     private readonly redis: RedisService,
     private readonly notificationService: NotificationService,
   ) {}
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // CARPOOL CRUD
+  // ─────────────────────────────────────────────────────────────────────────────
 
   async createCarpool(userId: number, dto: CreateCarpoolDto) {
     const belong = await this.carpoolRepository.verifyChildrenBelongToUser(
@@ -46,6 +54,7 @@ export class CarpoolService {
 
     const carpool = await this.carpoolRepository.createCarpool(userId, dto);
 
+    // Emit CREATED first so the chat listener can create the conversation
     this.eventEmitter.emit(CarpoolEvent.CREATED, {
       carpoolId: carpool.id,
       title: carpool.title,
@@ -53,14 +62,13 @@ export class CarpoolService {
       memberIds: [userId],
     });
 
+    // Schedule the first PICKUP round using the carpool's start date
     await this.scheduleNextRound(carpool.id, dto.date, RoundType.PICKUP);
 
+    // Send invitations to any pre-specified members
     if (dto.memberIds && dto.memberIds.length > 0) {
       for (const memberId of dto.memberIds) {
-        if (memberId === userId) {
-          continue;
-        }
-
+        if (memberId === userId) continue;
         try {
           await this.inviteMember(userId, carpool.id, {
             userId: memberId,
@@ -68,7 +76,7 @@ export class CarpoolService {
           });
         } catch (error) {
           this.logger.warn(
-            `Failed to send default invitation to user ${memberId} on carpool creation: ${error.message}`,
+            `Failed to invite user ${memberId} on carpool creation: ${error.message}`,
           );
         }
       }
@@ -99,10 +107,7 @@ export class CarpoolService {
 
     if (dto.memberIds && dto.memberIds.length > 0) {
       for (const memberId of dto.memberIds) {
-        if (memberId === userId) {
-          continue;
-        }
-
+        if (memberId === userId) continue;
         try {
           await this.inviteMember(userId, carpool.id, {
             userId: memberId,
@@ -110,7 +115,7 @@ export class CarpoolService {
           });
         } catch (error) {
           this.logger.warn(
-            `Failed to send default invitation to user ${memberId} on carpool creation: ${error.message}`,
+            `Failed to invite user ${memberId} on carpool update: ${error.message}`,
           );
         }
       }
@@ -125,6 +130,7 @@ export class CarpoolService {
     const memberIds = await this.carpoolRepository.getMemberUserIds(carpoolId);
     const carpool = await this.carpoolRepository.getCarpoolById(carpoolId);
 
+    // Cancel all non-terminal rounds (SCHEDULED and IN_PROGRESS) and their jobs
     const activeRounds =
       await this.carpoolRepository.getActiveRounds(carpoolId);
     for (const round of activeRounds) {
@@ -141,6 +147,10 @@ export class CarpoolService {
       memberIds,
     });
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // DRIVER
+  // ─────────────────────────────────────────────────────────────────────────────
 
   async assignDriver(userId: number, carpoolId: string) {
     const isMember = await this.carpoolRepository.isMember(carpoolId, userId);
@@ -171,8 +181,10 @@ export class CarpoolService {
       throw new ForbiddenException('You are not the driver of this carpool');
     }
 
-    const memberIds = await this.carpoolRepository.getMemberUserIds(carpoolId);
+    // FIX: also clear driverId from all future SCHEDULED rounds
     await this.carpoolRepository.resignDriver(carpoolId);
+
+    const memberIds = await this.carpoolRepository.getMemberUserIds(carpoolId);
 
     this.eventEmitter.emit(CarpoolEvent.DRIVER_RESIGNED, {
       carpoolId,
@@ -181,6 +193,10 @@ export class CarpoolService {
       memberIds,
     });
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // INVITES / MEMBERSHIP
+  // ─────────────────────────────────────────────────────────────────────────────
 
   async inviteMember(userId: number, carpoolId: string, dto: InviteMemberDto) {
     await this.assertOwner(carpoolId, userId);
@@ -202,7 +218,6 @@ export class CarpoolService {
           `Failed to send warning notification: ${error.message}`,
         );
       }
-
       throw new BadRequestException('You can only invite your contacts');
     }
 
@@ -284,7 +299,7 @@ export class CarpoolService {
 
   async declineInvite(userId: number, carpoolId: string) {
     const carpool = await this.getOrThrow(carpoolId);
-    const ownerId = await this.getOwnerId(carpoolId);
+    const ownerId = await this.carpoolRepository.getOwnerId(carpoolId);
 
     await this.carpoolRepository.declineInvite(carpoolId, userId);
 
@@ -323,17 +338,45 @@ export class CarpoolService {
     });
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // ROUNDS
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Driver can start a round at any time (even before its scheduledAt).
+   * The round must be in SCHEDULED status — cannot restart a COMPLETED or
+   * CANCELLED round, and an already IN_PROGRESS round is returned as-is
+   * (idempotent).
+   */
   async startRound(userId: number, roundId: string) {
     const round = await this.carpoolRepository.getRound(roundId);
     if (!round) throw new NotFoundException('Round not found');
-    if (round.carpool.driverId !== userId) {
-      throw new ForbiddenException('Only the driver can start a round');
+
+    // FIX: use round.driverId (the round-level driver), falling back to carpool driver.
+    // This supports the case where the round was assigned a different driver than the carpool default.
+    const effectiveDriverId = round.driverId ?? round.carpool.driverId;
+    if (effectiveDriverId !== userId) {
+      throw new ForbiddenException(
+        'Only the assigned driver can start this round',
+      );
     }
+
     if (round.carpool.isDeleted) {
-      throw new BadRequestException('Cannot start a round for a deleted carpool');
+      throw new BadRequestException(
+        'Cannot start a round for a deleted carpool',
+      );
     }
+
+    // Idempotent: already started
     if (round.status === RoundStatus.IN_PROGRESS) {
       return round;
+    }
+
+    // FIX: guard against starting a terminal round
+    if (round.status !== RoundStatus.SCHEDULED) {
+      throw new BadRequestException(
+        `Round cannot be started: current status is "${round.status}"`,
+      );
     }
 
     await this.cancelRoundJobs(roundId);
@@ -354,17 +397,32 @@ export class CarpoolService {
     return updated;
   }
 
+  /**
+   * Completes a round that is IN_PROGRESS.
+   *
+   * Round lifecycle: PICKUP complete → schedule DROPOFF
+   *                  DROPOFF complete → schedule next PICKUP (per repeat rule)
+   */
   async completeRound(userId: number, roundId: string) {
     const round = await this.carpoolRepository.getRound(roundId);
     if (!round) throw new NotFoundException('Round not found');
-    if (round.carpool.driverId !== userId) {
-      throw new ForbiddenException('Only the driver can complete a round');
+
+    const effectiveDriverId = round.driverId ?? round.carpool.driverId;
+    if (effectiveDriverId !== userId) {
+      throw new ForbiddenException(
+        'Only the assigned driver can complete this round',
+      );
     }
+
+    // Idempotent
     if (round.status === RoundStatus.COMPLETED) {
       return round;
     }
+
     if (round.status !== RoundStatus.IN_PROGRESS) {
-      throw new BadRequestException('Round is not in progress');
+      throw new BadRequestException(
+        `Round cannot be completed: current status is "${round.status}"`,
+      );
     }
 
     await this.cancelRoundJobs(roundId);
@@ -382,7 +440,8 @@ export class CarpoolService {
       memberIds,
     });
 
-    await this.scheduleNextRoundAfter(
+    // FIX: implement the PICKUP → DROPOFF → next PICKUP cycle correctly
+    await this.scheduleFollowUpRound(
       round.carpoolId,
       round.scheduledAt,
       round.type as RoundType,
@@ -390,6 +449,10 @@ export class CarpoolService {
 
     return updated;
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // CHECKLIST
+  // ─────────────────────────────────────────────────────────────────────────────
 
   async updatePickupChecklist(
     userId: number,
@@ -413,6 +476,10 @@ export class CarpoolService {
     );
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // VEHICLE LOCATION
+  // ─────────────────────────────────────────────────────────────────────────────
+
   async updateVehicleLocation(
     userId: number,
     carpoolId: string,
@@ -420,8 +487,14 @@ export class CarpoolService {
   ) {
     const { latitude, longitude } = dto;
 
-    const shouldUpdateDb = Math.random() < 0.5;
-    if (shouldUpdateDb) {
+    // FIX: replace Math.random() with a deterministic counter-based flush strategy.
+    // Emit the real-time socket event on every call, but only write to DB every
+    // VEHICLE_LOCATION_DB_FLUSH_INTERVAL updates to reduce write pressure.
+    const count = (this.vehicleLocationUpdateCount.get(carpoolId) ?? 0) + 1;
+    this.vehicleLocationUpdateCount.set(carpoolId, count);
+
+    if (count >= VEHICLE_LOCATION_DB_FLUSH_INTERVAL) {
+      this.vehicleLocationUpdateCount.set(carpoolId, 0);
       await this.carpoolRepository.updateVehicleLocationInDb(
         carpoolId,
         latitude,
@@ -435,6 +508,10 @@ export class CarpoolService {
       longitude,
     });
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // QUERIES
+  // ─────────────────────────────────────────────────────────────────────────────
 
   async getMyCarpools(userId: number, query: QueryDefaultDto) {
     return await this.carpoolRepository.getMyCarpools(userId, query);
@@ -462,62 +539,65 @@ export class CarpoolService {
     return await this.carpoolRepository.getOutgoingInvites(userId, query);
   }
 
-  private async getOrThrow(carpoolId: string) {
-    const carpool = await this.carpoolRepository.getCarpool(carpoolId);
-    if (!carpool) throw new NotFoundException('Carpool not found');
-    return carpool;
-  }
+  // ─────────────────────────────────────────────────────────────────────────────
+  // ROUND SCHEDULING
+  // ─────────────────────────────────────────────────────────────────────────────
 
-  private async assertOwner(carpoolId: string, userId: number) {
-    const member = await this.carpoolRepository.isMember(carpoolId, userId);
-    if (!member || member.role !== CarpoolRole.OWNER) {
-      throw new ForbiddenException(
-        'Only the carpool owner can perform this action',
+  /**
+   * Determines what to schedule after a round completes:
+   *
+   *   PICKUP completed  → schedule a DROPOFF for the same day (same scheduledAt date,
+   *                        but using the repeat rule's dropoff time if it exists, otherwise
+   *                        we keep the same time — callers can extend this later).
+   *
+   *   DROPOFF completed → calculate the next PICKUP occurrence per the repeat rule.
+   *
+   * This creates the full PICKUP ↔ DROPOFF cycle automatically.
+   */
+  private async scheduleFollowUpRound(
+    carpoolId: string,
+    lastScheduledAt: Date,
+    lastType: RoundType,
+  ) {
+    if (lastType === RoundType.PICKUP) {
+      // Schedule the DROPOFF for the same occurrence (same date, same time for now)
+      await this.scheduleNextRound(
+        carpoolId,
+        lastScheduledAt,
+        RoundType.DROPOFF,
       );
-    }
-    return member;
-  }
+    } else {
+      // DROPOFF completed → advance to next occurrence and schedule PICKUP
+      const carpool = await this.carpoolRepository.getCarpool(carpoolId);
+      if (!carpool?.repeatRule) {
+        this.logger.warn(
+          `No repeat rule for carpool ${carpoolId}; no next PICKUP will be scheduled`,
+        );
+        return;
+      }
 
-  private async assertNotInProgress(carpoolId: string) {
-    const carpool = await this.getOrThrow(carpoolId);
-    const activeRound =
-      await this.carpoolRepository.getInProgressRound(carpoolId);
-    if (activeRound) {
-      throw new BadRequestException(
-        'Cannot modify carpool while a round is in progress',
+      const nextAt = this.calculateNextOccurrence(
+        carpool.repeatRule,
+        lastScheduledAt,
       );
+      if (!nextAt) {
+        this.logger.log(
+          `No more occurrences for carpool ${carpoolId} (ONCE or past endDate)`,
+        );
+        return;
+      }
+
+      await this.scheduleNextRound(carpoolId, nextAt, RoundType.PICKUP);
     }
-    return carpool;
-  }
-
-  private async getOwnerId(carpoolId: string): Promise<number> {
-    await this.carpoolRepository.isMember(carpoolId, 0);
-    const carpool = await this.carpoolRepository.getCarpool(carpoolId);
-    const ownerMember = (carpool as any).members?.find(
-      (m: any) => m.role === CarpoolRole.OWNER,
-    );
-    return ownerMember?.userId ?? 0;
-  }
-
-  private async getMemberId(roundId: string, userId: number): Promise<string> {
-    const round = await this.carpoolRepository.getRound(roundId);
-    if (!round) throw new NotFoundException('Round not found');
-
-    const member = round.carpool.members.find((m: any) => m.userId === userId);
-    if (!member) {
-      throw new ForbiddenException('You are not a member of this carpool');
-    }
-
-    return member.id;
   }
 
   /**
-   * Creates a SCHEDULED round in the DB immediately (so the client can see
-   * the upcoming round right away), then queues BullMQ reminder jobs.
+   * Creates a SCHEDULED round in the DB immediately (visible to clients right
+   * away) and queues BullMQ reminder notifications.
    *
-   * If `scheduledAt` is in the past we advance through the repeat rule until
-   * we find the next future occurrence.  If there is none (ONCE / rule ended)
-   * we log and return without creating anything.
+   * If `scheduledAt` is in the past the method advances through the repeat rule
+   * to find the next future occurrence.  Returns undefined when there is none
+   * (ONCE / rule exhausted).
    */
   async scheduleNextRound(
     carpoolId: string,
@@ -526,47 +606,50 @@ export class CarpoolService {
   ) {
     const carpool = await this.carpoolRepository.getCarpool(carpoolId);
     if (!carpool) {
-      this.logger.warn(`Carpool not found for carpool ${carpoolId}`);
+      this.logger.warn(`Carpool ${carpoolId} not found; cannot schedule round`);
       return;
     }
 
-    // ── Advance past dates ────────────────────────────────────────────────
+    // Advance past any dates that are already in the past
     let nextAt: Date | null = new Date(scheduledAt);
 
     if (nextAt.getTime() <= Date.now()) {
-      this.logger.warn(
-        `scheduledAt ${nextAt.toISOString()} is in the past for carpool ${carpoolId}, finding next future occurrence`,
-      );
-
-      if (!carpool.repeatRule) {
+      if (!carpool.repeatRule || carpool.repeatRule.frequency === 'ONCE') {
         this.logger.warn(
-          `No repeat rule found for carpool ${carpoolId}, cannot advance past date`,
+          `scheduledAt is in the past and carpool ${carpoolId} has no repeating rule; skipping`,
         );
         return;
       }
 
-      while (nextAt && nextAt.getTime() <= Date.now()) {
+      this.logger.warn(
+        `scheduledAt ${nextAt.toISOString()} is in the past for carpool ${carpoolId}; finding next future occurrence`,
+      );
+
+      while (nextAt !== null && nextAt.getTime() <= Date.now()) {
         nextAt = this.calculateNextOccurrence(carpool.repeatRule, nextAt);
       }
 
       if (!nextAt) {
         this.logger.warn(
-          `No upcoming occurrence for carpool ${carpoolId} (ONCE or rule ended)`,
+          `No upcoming occurrence for carpool ${carpoolId} (rule exhausted)`,
         );
         return;
       }
     }
 
-    // ── Prevent duplicates ───────────────────────────────────────────────
-    const existing = await this.carpoolRepository.findRoundByScheduledAt(carpoolId, nextAt);
+    // Prevent duplicate rounds for the same (carpool, type, scheduledAt)
+    const existing = await this.carpoolRepository.findRoundByScheduledAt(
+      carpoolId,
+      type,
+      nextAt,
+    );
     if (existing) {
       this.logger.log(
-        `Round already scheduled for carpool ${carpoolId} at ${nextAt.toISOString()} (round ${existing.id})`,
+        `Round already exists for carpool ${carpoolId} [${type}] at ${nextAt.toISOString()} (id: ${existing.id})`,
       );
       return existing;
     }
 
-    // ── Create the round in DB immediately ───────────────────────────────
     const round = await this.carpoolRepository.createRound(
       carpoolId,
       nextAt,
@@ -574,12 +657,12 @@ export class CarpoolService {
     );
 
     this.logger.log(
-      `Round ${round.id} (${type}) created for carpool ${carpoolId} at ${nextAt.toISOString()}`,
+      `Round ${round.id} [${type}] created for carpool ${carpoolId} at ${nextAt.toISOString()}`,
     );
 
     const ownerId =
-      carpool.members.find((m) => m.role === CarpoolRole.OWNER)?.userId ||
-      carpool.driverId ||
+      carpool.members.find((m) => m.role === CarpoolRole.OWNER)?.userId ??
+      carpool.driverId ??
       0;
 
     this.eventEmitter.emit(CarpoolEvent.ROUND_CREATED, {
@@ -592,44 +675,13 @@ export class CarpoolService {
       driverId: round.driverId ?? undefined,
       ownerId,
     });
+
     return round;
   }
 
   /**
-   * Called after a round completes.  Calculates the next occurrence from the
-   * completed round's scheduledAt and creates a new SCHEDULED round in DB.
-   */
-  private async scheduleNextRoundAfter(
-    carpoolId: string,
-    lastScheduledAt: Date,
-    lastType: RoundType,
-  ) {
-    const carpool = await this.carpoolRepository.getCarpool(carpoolId);
-    if (!carpool || !carpool.repeatRule) {
-      this.logger.warn(
-        `Could not schedule next round after for carpool ${carpoolId}: rule not found`,
-      );
-      return;
-    }
-
-    const nextAt = this.calculateNextOccurrence(
-      carpool.repeatRule,
-      lastScheduledAt,
-    );
-
-    if (!nextAt) {
-      this.logger.log(
-        `No more rounds to schedule for carpool ${carpoolId} (end of recurrence or ONCE)`,
-      );
-      return;
-    }
-
-    await this.scheduleNextRound(carpoolId, nextAt, lastType);
-  }
-
-  /**
    * Returns the next Date after `currentDate` that satisfies the repeat rule,
-   * with the rule's `timeOfDay` (HH:MM UTC) applied to it.
+   * with the rule's `timeOfDay` (HH:MM UTC) applied.
    * Returns null when the rule is exhausted (ONCE or past endDate).
    */
   private calculateNextOccurrence(
@@ -641,11 +693,8 @@ export class CarpoolService {
     },
     currentDate: Date,
   ): Date | null {
-    if (repeatRule.frequency === 'ONCE') {
-      return null;
-    }
+    if (repeatRule.frequency === 'ONCE') return null;
 
-    // Work on a date-only copy (strip time so day arithmetic is clean)
     const nextDate = new Date(currentDate);
 
     if (repeatRule.frequency === 'DAILY') {
@@ -681,12 +730,12 @@ export class CarpoolService {
       nextDate.setUTCDate(nextDate.getUTCDate() + 1);
     }
 
-    // ── Apply timeOfDay from the repeat rule (HH:MM UTC) ─────────────────
+    // Apply timeOfDay from the repeat rule (HH:MM UTC)
     if (repeatRule.timeOfDay) {
       const [hh, mm] = repeatRule.timeOfDay.split(':').map(Number);
       nextDate.setUTCHours(hh ?? 0, mm ?? 0, 0, 0);
     } else {
-      // Preserve the original time from currentDate if no timeOfDay set
+      // Preserve original time if no timeOfDay is configured
       nextDate.setUTCHours(
         currentDate.getUTCHours(),
         currentDate.getUTCMinutes(),
@@ -705,8 +754,52 @@ export class CarpoolService {
     return nextDate;
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // PRIVATE HELPERS
+  // ─────────────────────────────────────────────────────────────────────────────
+
   private async cancelRoundJobs(roundId: string) {
     await this.notificationService.cancelNotification(`reminder30-${roundId}`);
     await this.notificationService.cancelNotification(`reminder15-${roundId}`);
+  }
+
+  private async getOrThrow(carpoolId: string) {
+    const carpool = await this.carpoolRepository.getCarpool(carpoolId);
+    if (!carpool) throw new NotFoundException('Carpool not found');
+    return carpool;
+  }
+
+  private async assertOwner(carpoolId: string, userId: number) {
+    const member = await this.carpoolRepository.isMember(carpoolId, userId);
+    if (!member || member.role !== CarpoolRole.OWNER) {
+      throw new ForbiddenException(
+        'Only the carpool owner can perform this action',
+      );
+    }
+    return member;
+  }
+
+  private async assertNotInProgress(carpoolId: string) {
+    const carpool = await this.getOrThrow(carpoolId);
+    const activeRound =
+      await this.carpoolRepository.getInProgressRound(carpoolId);
+    if (activeRound) {
+      throw new BadRequestException(
+        'Cannot modify carpool while a round is in progress',
+      );
+    }
+    return carpool;
+  }
+
+  private async getMemberId(roundId: string, userId: number): Promise<string> {
+    const round = await this.carpoolRepository.getRound(roundId);
+    if (!round) throw new NotFoundException('Round not found');
+
+    const member = round.carpool.members.find((m: any) => m.userId === userId);
+    if (!member) {
+      throw new ForbiddenException('You are not a member of this carpool');
+    }
+
+    return member.id;
   }
 }

@@ -29,204 +29,13 @@ export class CarpoolRepository {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // CARPOOL QUERIES
+  // ─────────────────────────────────────────────────────────────────────────────
+
   async getCarpoolById(carpoolId: string) {
     return await this.prisma.carpool.findUnique({
-      where: {
-        id: carpoolId,
-      },
-    });
-  }
-
-  async getMyCarpools(userId: number, query: QueryDefaultDto) {
-    const { limit, page, search } = query;
-
-    const where: Prisma.CarpoolWhereInput = {
-      isDeleted: false,
-      members: {
-        some: {
-          userId,
-          leftAt: null,
-        },
-      },
-    };
-
-    if (search) {
-      where.OR = CarpoolSearchableFields.map((field) => ({
-        [field]: { contains: search, mode: 'insensitive' },
-      }));
-    }
-
-    return await Promise.all([
-      this.prisma.carpool.findMany({
-        where,
-        include: CarpoolInclude,
-        orderBy: {
-          createdAt: 'desc',
-        },
-        take: limit,
-        skip: (page - 1) * limit,
-      }),
-      this.prisma.carpool.count({ where }),
-    ]);
-  }
-
-  async getIncomingInvites(userId: number, query: QueryDefaultDto) {
-    const { limit, page, search } = query;
-
-    const location = await this.prisma.location.findUnique({
-      where: {
-        userId,
-      },
-    });
-
-    const where: Prisma.CarpoolInviteWhereInput = {
-      userId,
-      status: CarpoolInviteStatus.PENDING,
-      carpool: {
-        isDeleted: false,
-      },
-    };
-
-    if (search) {
-      where.carpool = {
-        isDeleted: false,
-        title: { contains: search, mode: 'insensitive' },
-      };
-    }
-
-    const [data, total] = await Promise.all([
-      this.prisma.carpoolInvite.findMany({
-        where,
-        select: {
-          carpool: {
-            select: CarpoolSelectForInvited,
-          },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        take: limit,
-        skip: (page - 1) * limit,
-      }),
-      this.prisma.carpoolInvite.count({ where }),
-    ]);
-
-    return [
-      data.map(({ carpool: { members, ...carpool } }) => {
-        let distanceKm = 0;
-
-        if (
-          location?.latitude != null &&
-          location?.longitude != null &&
-          carpool.pickup?.latitude != null &&
-          carpool.pickup?.longitude != null
-        ) {
-          const rawDistance = calculateDistanceInKm(
-            {
-              lat: location.latitude,
-              lon: location.longitude,
-            },
-            {
-              lat: carpool.pickup.latitude,
-              lon: carpool.pickup.longitude,
-            },
-          );
-          distanceKm = Math.round(rawDistance * 100) / 100;
-        }
-
-        return {
-          ...carpool,
-          owner: members[0].user,
-          distanceKm,
-        };
-      }),
-      total,
-    ];
-  }
-
-  async getOutgoingInvites(userId: number, query: QueryDefaultDto) {
-    const { limit, page, search } = query;
-
-    const where: Prisma.CarpoolInviteWhereInput = {
-      carpool: {
-        isDeleted: false,
-        members: {
-          some: {
-            userId,
-            role: CarpoolRole.OWNER,
-          },
-        },
-      },
-    };
-
-    if (search) {
-      where.OR = [
-        {
-          carpool: {
-            title: { contains: search, mode: 'insensitive' },
-          },
-        },
-        {
-          user: {
-            name: { contains: search, mode: 'insensitive' },
-          },
-        },
-      ];
-    }
-
-    const [data, total] = await Promise.all([
-      this.prisma.carpoolInvite.findMany({
-        where,
-        select: CarpoolInviteSelectForOutgoing,
-        orderBy: {
-          createdAt: 'desc',
-        },
-        take: limit,
-        skip: (page - 1) * limit,
-      }),
-      this.prisma.carpoolInvite.count({ where }),
-    ]);
-
-    return [
-      data.map(({ carpool, user }) => ({
-        ...carpool,
-        user,
-      })),
-      total,
-    ];
-  }
-
-  async verifyChildrenBelongToUser(userId: number, childrenIds: string[]) {
-    const count = await this.prisma.child.count({
-      where: { id: { in: childrenIds }, parentId: userId },
-    });
-
-    return count === childrenIds.length;
-  }
-
-  async getMemberUserIds(carpoolId: string): Promise<number[]> {
-    const members = await this.prisma.carpoolMember.findMany({
-      where: { carpoolId, leftAt: null },
-      select: { userId: true },
-    });
-
-    return members.map((m) => m.userId);
-  }
-
-  async isMember(carpoolId: string, userId: number) {
-    return this.prisma.carpoolMember.findUnique({
-      where: { carpoolId_userId: { carpoolId, userId }, leftAt: null } as any,
-    });
-  }
-
-  async isContact(userId1: number, userId2: number) {
-    return this.prisma.contact.findFirst({
-      where: {
-        OR: [
-          { userId1, userId2, isBlocked: false },
-          { userId1: userId2, userId2: userId1, isBlocked: false },
-        ],
-      },
+      where: { id: carpoolId },
     });
   }
 
@@ -240,14 +49,126 @@ export class CarpoolRepository {
   async getCarpoolConversationId(carpoolId: string): Promise<string | null> {
     const carpool = await this.prisma.carpool.findUnique({
       where: { id: carpoolId },
+      select: { conversationId: true },
     });
-
-    if (!carpool) {
-      throw new Error(`Carpool not found`);
-    }
-
+    if (!carpool) throw new Error(`Carpool ${carpoolId} not found`);
     return carpool.conversationId;
   }
+
+  async getMyCarpools(userId: number, query: QueryDefaultDto) {
+    const { limit, page, search } = query;
+
+    const where: Prisma.CarpoolWhereInput = {
+      isDeleted: false,
+      members: {
+        some: { userId, leftAt: null },
+      },
+    };
+
+    if (search) {
+      where.OR = CarpoolSearchableFields.map((field) => ({
+        [field]: { contains: search, mode: 'insensitive' },
+      }));
+    }
+
+    return await Promise.all([
+      this.prisma.carpool.findMany({
+        where,
+        include: CarpoolInclude,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: (page - 1) * limit,
+      }),
+      this.prisma.carpool.count({ where }),
+    ]);
+  }
+
+  async getIncomingInvites(userId: number, query: QueryDefaultDto) {
+    const { limit, page, search } = query;
+
+    const location = await this.prisma.location.findUnique({
+      where: { userId },
+    });
+
+    const where: Prisma.CarpoolInviteWhereInput = {
+      userId,
+      status: CarpoolInviteStatus.PENDING,
+      carpool: { isDeleted: false },
+    };
+
+    if (search) {
+      where.carpool = {
+        isDeleted: false,
+        title: { contains: search, mode: 'insensitive' },
+      };
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.carpoolInvite.findMany({
+        where,
+        select: { carpool: { select: CarpoolSelectForInvited } },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: (page - 1) * limit,
+      }),
+      this.prisma.carpoolInvite.count({ where }),
+    ]);
+
+    return [
+      data.map(({ carpool: { members, ...carpool } }) => {
+        let distanceKm = 0;
+        if (
+          location?.latitude != null &&
+          location?.longitude != null &&
+          carpool.pickup?.latitude != null &&
+          carpool.pickup?.longitude != null
+        ) {
+          const raw = calculateDistanceInKm(
+            { lat: location.latitude, lon: location.longitude },
+            { lat: carpool.pickup.latitude, lon: carpool.pickup.longitude },
+          );
+          distanceKm = Math.round(raw * 100) / 100;
+        }
+        return { ...carpool, owner: members[0].user, distanceKm };
+      }),
+      total,
+    ];
+  }
+
+  async getOutgoingInvites(userId: number, query: QueryDefaultDto) {
+    const { limit, page, search } = query;
+
+    const where: Prisma.CarpoolInviteWhereInput = {
+      carpool: {
+        isDeleted: false,
+        members: { some: { userId, role: CarpoolRole.OWNER } },
+      },
+    };
+
+    if (search) {
+      where.OR = [
+        { carpool: { title: { contains: search, mode: 'insensitive' } } },
+        { user: { name: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.carpoolInvite.findMany({
+        where,
+        select: CarpoolInviteSelectForOutgoing,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: (page - 1) * limit,
+      }),
+      this.prisma.carpoolInvite.count({ where }),
+    ]);
+
+    return [data.map(({ carpool, user }) => ({ ...carpool, user })), total];
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // CARPOOL MUTATIONS
+  // ─────────────────────────────────────────────────────────────────────────────
 
   async createCarpool(userId: number, dto: CreateCarpoolDto) {
     const {
@@ -325,6 +246,105 @@ export class CarpoolRepository {
     });
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // MEMBERSHIP
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  async verifyChildrenBelongToUser(userId: number, childrenIds: string[]) {
+    const count = await this.prisma.child.count({
+      where: { id: { in: childrenIds }, parentId: userId },
+    });
+    return count === childrenIds.length;
+  }
+
+  async getMemberUserIds(carpoolId: string): Promise<number[]> {
+    const members = await this.prisma.carpoolMember.findMany({
+      where: { carpoolId, leftAt: null },
+      select: { userId: true },
+    });
+    return members.map((m) => m.userId);
+  }
+
+  /** Returns the userId of the OWNER member, or 0 if not found. */
+  async getOwnerId(carpoolId: string): Promise<number> {
+    const owner = await this.prisma.carpoolMember.findFirst({
+      where: { carpoolId, role: CarpoolRole.OWNER, leftAt: null },
+      select: { userId: true },
+    });
+    return owner?.userId ?? 0;
+  }
+
+  async isMember(carpoolId: string, userId: number) {
+    return this.prisma.carpoolMember.findUnique({
+      where: { carpoolId_userId: { carpoolId, userId }, leftAt: null } as any,
+    });
+  }
+
+  async isContact(userId1: number, userId2: number) {
+    return this.prisma.contact.findFirst({
+      where: {
+        OR: [
+          { userId1, userId2, isBlocked: false },
+          { userId1: userId2, userId2: userId1, isBlocked: false },
+        ],
+      },
+    });
+  }
+
+  async memberLeave(carpoolId: string, userId: number) {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Mark member as left
+      const member = await tx.carpoolMember.update({
+        where: { carpoolId_userId: { carpoolId, userId } },
+        data: { leftAt: new Date() },
+        include: { children: { select: { id: true } } },
+      });
+
+      // 2. If the user was the carpool-level driver, clear it
+      const carpool = await tx.carpool.findUnique({
+        where: { id: carpoolId },
+        select: { driverId: true },
+      });
+
+      if (carpool?.driverId === userId) {
+        await tx.carpool.update({
+          where: { id: carpoolId },
+          data: { driverId: null },
+        });
+      }
+
+      // 3. Clear this user as driver on future SCHEDULED rounds
+      await tx.carpoolRound.updateMany({
+        where: { carpoolId, status: RoundStatus.SCHEDULED, driverId: userId },
+        data: { driverId: null },
+      });
+
+      // 4. Remove checklist entries for this member's children in SCHEDULED rounds
+      const childIds = member.children.map((c) => c.id);
+      if (childIds.length > 0) {
+        await tx.carpoolRoundPickupChecklist.deleteMany({
+          where: {
+            round: { carpoolId, status: RoundStatus.SCHEDULED },
+            childId: { in: childIds },
+          },
+        });
+
+        await tx.carpoolRoundDropoffChecklist.deleteMany({
+          where: {
+            round: { carpoolId, status: RoundStatus.SCHEDULED },
+            childId: { in: childIds },
+          },
+        });
+      }
+
+      return member;
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // DRIVER
+  // ─────────────────────────────────────────────────────────────────────────────
+
   async assignDriver(carpoolId: string, userId: number) {
     return this.prisma.$transaction(async (tx) => {
       const carpool = await tx.carpool.update({
@@ -333,27 +353,37 @@ export class CarpoolRepository {
         include: CarpoolInclude,
       });
 
+      // Propagate the driver to all SCHEDULED rounds that have no driver yet
       await tx.carpoolRound.updateMany({
-        where: {
-          carpoolId,
-          status: RoundStatus.SCHEDULED,
-          driverId: null,
-        },
-        data: {
-          driverId: userId,
-        },
+        where: { carpoolId, status: RoundStatus.SCHEDULED, driverId: null },
+        data: { driverId: userId },
       });
 
       return carpool;
     });
   }
 
+  /**
+   * FIX: also nullify driverId on future SCHEDULED rounds so they don't remain
+   * assigned to a driver who has stepped down.
+   */
   async resignDriver(carpoolId: string) {
-    return this.prisma.carpool.update({
-      where: { id: carpoolId },
-      data: { driverId: null },
+    return this.prisma.$transaction(async (tx) => {
+      await tx.carpool.update({
+        where: { id: carpoolId },
+        data: { driverId: null },
+      });
+
+      await tx.carpoolRound.updateMany({
+        where: { carpoolId, status: RoundStatus.SCHEDULED },
+        data: { driverId: null },
+      });
     });
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // INVITES
+  // ─────────────────────────────────────────────────────────────────────────────
 
   async createInvite(
     carpoolId: string,
@@ -405,16 +435,10 @@ export class CarpoolRepository {
           role: CarpoolRole.MEMBER,
           children: { connect: selectedChildrenIds.map((id) => ({ id })) },
         },
-        include: {
-          user: {
-            select: {
-              name: true,
-            },
-          },
-        },
+        include: { user: { select: { name: true } } },
       });
 
-      // Update checklists for scheduled rounds
+      // Add checklist entries for the new member's children to all SCHEDULED rounds
       const scheduledRounds = await tx.carpoolRound.findMany({
         where: { carpoolId, status: RoundStatus.SCHEDULED },
         select: { id: true },
@@ -442,6 +466,7 @@ export class CarpoolRepository {
         }
       }
 
+      // Add the new user to the carpool group conversation
       const carpool = await tx.carpool.findUnique({
         where: { id: carpoolId },
         select: { conversationId: true },
@@ -460,10 +485,7 @@ export class CarpoolRepository {
             userId,
             role: 'MEMBER',
           },
-          update: {
-            leftAt: null,
-            unreadCount: 0,
-          },
+          update: { leftAt: null, unreadCount: 0 },
         });
       }
 
@@ -478,53 +500,52 @@ export class CarpoolRepository {
     });
   }
 
-  async memberLeave(carpoolId: string, userId: number) {
-    return this.prisma.$transaction(async (tx) => {
-      // 1. Mark member as left
-      const member = await tx.carpoolMember.update({
-        where: { carpoolId_userId: { carpoolId, userId } },
-        data: { leftAt: new Date() },
-        include: { children: { select: { id: true } } },
-      });
+  // ─────────────────────────────────────────────────────────────────────────────
+  // ROUNDS
+  // ─────────────────────────────────────────────────────────────────────────────
 
-      // 2. If the user was the driver of the carpool, remove them
-      const carpool = await tx.carpool.findUnique({
-        where: { id: carpoolId },
-        select: { driverId: true },
-      });
+  async getRound(roundId: string) {
+    return this.prisma.carpoolRound.findUnique({
+      where: { id: roundId },
+      include: RoundInclude,
+    });
+  }
 
-      if (carpool?.driverId === userId) {
-        await tx.carpool.update({
-          where: { id: carpoolId },
-          data: { driverId: null },
-        });
-      }
+  async getScheduledRounds(carpoolId: string) {
+    return this.prisma.carpoolRound.findMany({
+      where: { carpoolId, status: RoundStatus.SCHEDULED },
+      orderBy: { scheduledAt: 'asc' },
+    });
+  }
 
-      // 3. For scheduled rounds, if this user was the driver, set driverId to null
-      await tx.carpoolRound.updateMany({
-        where: { carpoolId, status: RoundStatus.SCHEDULED, driverId: userId },
-        data: { driverId: null },
-      });
+  async getActiveRounds(carpoolId: string) {
+    return await this.prisma.carpoolRound.findMany({
+      where: {
+        carpoolId,
+        status: { in: [RoundStatus.SCHEDULED, RoundStatus.IN_PROGRESS] },
+      },
+      orderBy: { scheduledAt: 'asc' },
+    });
+  }
 
-      // 4. Delete checklist entries for this member's children in scheduled rounds
-      const childIds = member.children.map((c) => c.id);
-      if (childIds.length > 0) {
-        await tx.carpoolRoundPickupChecklist.deleteMany({
-          where: {
-            round: { carpoolId, status: RoundStatus.SCHEDULED },
-            childId: { in: childIds },
-          },
-        });
+  async getInProgressRound(carpoolId: string) {
+    return this.prisma.carpoolRound.findFirst({
+      where: { carpoolId, status: RoundStatus.IN_PROGRESS },
+    });
+  }
 
-        await tx.carpoolRoundDropoffChecklist.deleteMany({
-          where: {
-            round: { carpoolId, status: RoundStatus.SCHEDULED },
-            childId: { in: childIds },
-          },
-        });
-      }
-
-      return member;
+  /**
+   * FIX: Duplicate check now includes `type` so that a PICKUP and a DROPOFF
+   * can legitimately share the same scheduledAt on the same day without being
+   * incorrectly de-duplicated.
+   */
+  async findRoundByScheduledAt(
+    carpoolId: string,
+    type: RoundType,
+    scheduledAt: Date,
+  ) {
+    return await this.prisma.carpoolRound.findFirst({
+      where: { carpoolId, type, scheduledAt },
     });
   }
 
@@ -603,38 +624,9 @@ export class CarpoolRepository {
     });
   }
 
-  async getRound(roundId: string) {
-    return this.prisma.carpoolRound.findUnique({
-      where: { id: roundId },
-      include: RoundInclude,
-    });
-  }
-
-  async getScheduledRounds(carpoolId: string) {
-    return this.prisma.carpoolRound.findMany({
-      where: { carpoolId, status: RoundStatus.SCHEDULED },
-      orderBy: { scheduledAt: 'asc' },
-    });
-  }
-
-  async getActiveRounds(carpoolId: string) {
-    return await this.prisma.carpoolRound.findMany({
-      where: {
-        carpoolId,
-        status: { in: [RoundStatus.SCHEDULED, RoundStatus.IN_PROGRESS] },
-      },
-      orderBy: { scheduledAt: 'asc' },
-    });
-  }
-
-  async findRoundByScheduledAt(carpoolId: string, scheduledAt: Date) {
-    return await this.prisma.carpoolRound.findFirst({
-      where: {
-        carpoolId,
-        scheduledAt,
-      },
-    });
-  }
+  // ─────────────────────────────────────────────────────────────────────────────
+  // CHECKLISTS
+  // ─────────────────────────────────────────────────────────────────────────────
 
   async updatePickupChecklist(
     roundId: string,
@@ -676,6 +668,10 @@ export class CarpoolRepository {
     );
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // VEHICLE LOCATION
+  // ─────────────────────────────────────────────────────────────────────────────
+
   async updateVehicleLocationInDb(
     carpoolId: string,
     latitude: number,
@@ -686,20 +682,11 @@ export class CarpoolRepository {
       data: {
         vehicleLocation: {
           upsert: {
-            create: {
-              latitude,
-              longitude,
-            },
+            create: { latitude, longitude },
             update: { latitude, longitude },
           },
         },
       },
-    });
-  }
-
-  async getInProgressRound(carpoolId: string) {
-    return this.prisma.carpoolRound.findFirst({
-      where: { carpoolId, status: RoundStatus.IN_PROGRESS },
     });
   }
 }
