@@ -41,10 +41,8 @@ export class RatingController {
     @CurrentUser('id') userId: number,
     @Query() query: QueryDefaultDto,
   ): Promise<ApiResponse> {
-    const { reviews, total } = await this.ratingService.getMyGiveReview(
-      userId,
-      query,
-    );
+    const { reviews, total, breakdown } =
+      await this.ratingService.getMyGiveReview(userId, query);
     return {
       message: 'Given reviews retrieved successfully',
       data: reviews,
@@ -54,6 +52,9 @@ export class RatingController {
         total,
         totalPages: Math.ceil(total / query.limit),
       },
+      meta: {
+        ratingBreakdown: breakdown,
+      },
     };
   }
 
@@ -62,10 +63,8 @@ export class RatingController {
     @CurrentUser('id') userId: number,
     @Query() query: QueryDefaultDto,
   ): Promise<ApiResponse> {
-    const { reviews, total } = await this.ratingService.getMyReceiveReview(
-      userId,
-      query,
-    );
+    const { reviews, total, breakdown } =
+      await this.ratingService.getMyReceiveReview(userId, query);
     return {
       message: 'Received reviews retrieved successfully',
       data: reviews,
@@ -74,6 +73,9 @@ export class RatingController {
         page: query.page,
         total,
         totalPages: Math.ceil(total / query.limit),
+      },
+      meta: {
+        ratingBreakdown: breakdown,
       },
     };
   }

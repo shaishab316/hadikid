@@ -53,21 +53,21 @@ export class RatingService {
 
   async getMyGiveReview(userId: number, query: QueryDefaultDto) {
     const { limit, page } = query;
-    const [reviews, total] = await this.ratingRepo.findReviewsGiven(
+    const [reviews, total, breakdown] = await this.ratingRepo.findReviewsGiven(
       userId,
       limit,
       page,
     );
-    return { reviews, total };
+    return { reviews, total, breakdown };
   }
 
   async getMyReceiveReview(userId: number, query: QueryDefaultDto) {
     const { limit, page } = query;
-    const [reviews, total] = await this.ratingRepo.findReviewsReceived(
+    const [reviews, total, breakdown] = await this.ratingRepo.findReviewsReceived(
       userId,
       limit,
       page,
     );
-    return { reviews, total };
+    return { reviews, total, breakdown };
   }
 }

@@ -107,7 +107,7 @@ export class RatingRepository {
 
   async findReviewsGiven(userId: number, limit: number, page: number) {
     const where: Prisma.ReviewWhereInput = { reviewerId: userId };
-    const [data, total] = await Promise.all([
+    const [data, total, breakdownRaw] = await Promise.all([
       this.prisma.review.findMany({
         where,
         orderBy: { createdAt: 'desc' },
@@ -127,13 +127,27 @@ export class RatingRepository {
         },
       }),
       this.prisma.review.count({ where }),
+      this.prisma.review.groupBy({
+        by: ['rating'],
+        where,
+        _count: { rating: true },
+      }),
     ]);
-    return [data, total] as const;
+
+    const breakdown = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    for (const item of breakdownRaw) {
+      const ratingVal = Math.round(Number(item.rating));
+      if (ratingVal >= 1 && ratingVal <= 5) {
+        breakdown[ratingVal as 1 | 2 | 3 | 4 | 5] += item._count.rating;
+      }
+    }
+
+    return [data, total, breakdown] as const;
   }
 
   async findReviewsReceived(userId: number, limit: number, page: number) {
     const where: Prisma.ReviewWhereInput = { subjectId: userId, type: 'USER' };
-    const [data, total] = await Promise.all([
+    const [data, total, breakdownRaw] = await Promise.all([
       this.prisma.review.findMany({
         where,
         orderBy: { createdAt: 'desc' },
@@ -153,7 +167,21 @@ export class RatingRepository {
         },
       }),
       this.prisma.review.count({ where }),
+      this.prisma.review.groupBy({
+        by: ['rating'],
+        where,
+        _count: { rating: true },
+      }),
     ]);
-    return [data, total] as const;
+
+    const breakdown = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    for (const item of breakdownRaw) {
+      const ratingVal = Math.round(Number(item.rating));
+      if (ratingVal >= 1 && ratingVal <= 5) {
+        breakdown[ratingVal as 1 | 2 | 3 | 4 | 5] += item._count.rating;
+      }
+    }
+
+    return [data, total, breakdown] as const;
   }
 }
