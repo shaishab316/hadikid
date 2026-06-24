@@ -72,7 +72,10 @@ export class ConversationService {
       const mapped = await this.mapConversation(conversation, userId);
       await this.checkAndCreateContactWarning(mapped, userId);
 
-      const updated = await this.conversationRepo.findByIdWithoutUserRestriction(conversation.id);
+      const updated =
+        await this.conversationRepo.findByIdWithoutUserRestriction(
+          conversation.id,
+        );
       conversation = updated ?? conversation;
     } else {
       if (!name) {
@@ -129,7 +132,8 @@ export class ConversationService {
   }
 
   async getConversation(id: string, userId: number) {
-    const conversation = await this.conversationRepo.findByIdWithoutUserRestriction(id);
+    const conversation =
+      await this.conversationRepo.findByIdWithoutUserRestriction(id);
     if (!conversation) {
       throw new NotFoundException('Conversation not found');
     }
@@ -142,7 +146,8 @@ export class ConversationService {
       if (conversation.type === 'SUPPORT') {
         const user = await this.userRepo.findById(userId);
         const roles = user?.roles.map((r) => r.role) ?? [];
-        const isAdmin = roles.includes('ADMIN') || roles.includes('SUPER_ADMIN');
+        const isAdmin =
+          roles.includes('ADMIN') || roles.includes('SUPER_ADMIN');
         if (isAdmin) {
           return await this.mapConversation(
             {
@@ -292,7 +297,11 @@ export class ConversationService {
         (p: any) => p.id === userId,
       );
       if (isAdmin && !isParticipant) {
-        await this.conversationRepo.addParticipant(targetConversationId, userId, 'ADMIN');
+        await this.conversationRepo.addParticipant(
+          targetConversationId,
+          userId,
+          'ADMIN',
+        );
       }
     }
 
@@ -444,7 +453,9 @@ export class ConversationService {
       return;
     }
 
-    const opponent = conversation.participants.find((p: any) => p.id !== currentUserId);
+    const opponent = conversation.participants.find(
+      (p: any) => p.id !== currentUserId,
+    );
     if (!opponent) return;
 
     const contact = await this.contactRepo.findContactBetweenUsersMinimal(
@@ -456,7 +467,11 @@ export class ConversationService {
       const name = opponent.name ?? 'This user';
       const content = `⚠️ ${name} is not in your contact list. Please be safe and exercise caution when sharing personal information.`;
 
-      const systemMessage = await this.conversationRepo.createSystemMessage(conversation.id, currentUserId, content);
+      const systemMessage = await this.conversationRepo.createSystemMessage(
+        conversation.id,
+        currentUserId,
+        content,
+      );
 
       this.eventEmitter.emit(ConversationEvent.MESSAGE_SENT, {
         targetConversationId: conversation.id,

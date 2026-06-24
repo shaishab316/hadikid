@@ -118,7 +118,9 @@ export class CarpoolChatListener {
         mappedConversations: [{ pId: ownerId, mapped }],
       });
     } catch (err) {
-      this.logger.warn(`Failed to emit conversation created event for owner: ${err instanceof Error ? err.message : 'unknown error'}`);
+      this.logger.warn(
+        `Failed to emit conversation created event for owner: ${err instanceof Error ? err.message : 'unknown error'}`,
+      );
     }
 
     this.logger.log(
@@ -317,6 +319,22 @@ export class CarpoolChatListener {
         `The ${tripType} trip has been completed successfully.`,
       );
     }
+  }
+
+  @OnEvent(CarpoolEvent.ROUND_COMPLETED)
+  onRoundCompletedSocket({
+    carpoolId,
+    roundId,
+    type,
+    driverId,
+  }: CarpoolRoundCompletedEvent) {
+    this.socketGateway.emit('*', `carpool:${carpoolId}:round-completed`, {
+      carpoolId,
+      roundId,
+      type,
+      driverId,
+      completedAt: new Date(),
+    });
   }
 
   @OnEvent(CarpoolEvent.VEHICLE_LOCATION_UPDATED)
