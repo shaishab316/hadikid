@@ -300,18 +300,56 @@ export class CarpoolNotificationListener {
     carpoolId,
     roundId,
     carpoolTitle,
-    type,
+    driverId,
     memberIds,
   }: CarpoolRoundCompletedEvent) {
-    const tripType = type === 'PICKUP' ? 'pickup' : 'drop-off';
+    const round = await this.prisma.carpoolRound.findUnique({
+      where: { id: roundId },
+      select: { scheduledAt: true, driverId: true },
+    });
+
+    const driverUserId = driverId ?? round?.driverId ?? 0;
+
+    const driver = driverUserId
+      ? await this.prisma.user.findUnique({
+          where: { id: driverUserId },
+          select: {
+            name: true,
+            profilePicture: {
+              select: { url: true },
+            },
+          },
+        })
+      : null;
+
+    const dateFormatted = round?.scheduledAt
+      ? new Date(round.scheduledAt).toLocaleDateString('en-US', {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        })
+      : new Date().toLocaleDateString('en-US', {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        });
+
+    const recipients = memberIds.filter((id) => id !== driverUserId);
 
     await this.notify(
-      memberIds,
-      NotificationType.CARPOOL_UPDATED,
-      '✅ Trip Completed',
-      `The ${tripType} for "${carpoolTitle}" has been completed successfully.`,
+      recipients,
+      NotificationType.TRIP_COMPLETED,
+      'Trip Completed',
+      `Rate your driver for ${carpoolTitle}`,
       `/carpools/${carpoolId}/rounds/${roundId}`,
-      { carpoolId, roundId, type },
+      {
+        carpoolId,
+        driverUserId,
+        driverName: driver?.name ?? 'Unknown Driver',
+        driverAvatar: driver?.profilePicture?.url ?? null,
+        carpoolTitle,
+        date: dateFormatted,
+      },
     );
   }
 
