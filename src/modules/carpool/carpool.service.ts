@@ -126,14 +126,13 @@ export class CarpoolService {
 
   async deleteCarpool(userId: number, carpoolId: string) {
     await this.assertOwner(carpoolId, userId);
-    await this.assertNotInProgress(carpoolId);
 
     const memberIds = await this.carpoolRepository.getMemberUserIds(carpoolId);
     const carpool = await this.carpoolRepository.getCarpoolById(carpoolId);
 
-    const scheduledRounds =
-      await this.carpoolRepository.getScheduledRounds(carpoolId);
-    for (const round of scheduledRounds) {
+    const activeRounds =
+      await this.carpoolRepository.getActiveRounds(carpoolId);
+    for (const round of activeRounds) {
       await this.cancelRoundJobs(round.id);
       await this.carpoolRepository.cancelRound(round.id);
     }
@@ -335,8 +334,11 @@ export class CarpoolService {
     if (round.carpool.driverId !== userId) {
       throw new ForbiddenException('Only the driver can start a round');
     }
-    if (round.status !== RoundStatus.SCHEDULED) {
-      throw new BadRequestException(`Round is already ${round.status}`);
+    if (round.carpool.isDeleted) {
+      throw new BadRequestException('Cannot start a round for a deleted carpool');
+    }
+    if (round.status === RoundStatus.IN_PROGRESS) {
+      return round;
     }
 
     const updated = await this.carpoolRepository.startRound(roundId);
@@ -361,6 +363,9 @@ export class CarpoolService {
     if (!round) throw new NotFoundException('Round not found');
     if (round.carpool.driverId !== userId) {
       throw new ForbiddenException('Only the driver can complete a round');
+    }
+    if (round.status === RoundStatus.COMPLETED) {
+      return round;
     }
     if (round.status !== RoundStatus.IN_PROGRESS) {
       throw new BadRequestException('Round is not in progress');
@@ -553,6 +558,15 @@ export class CarpoolService {
         );
         return;
       }
+    }
+
+    // ── Prevent duplicates ───────────────────────────────────────────────
+    const existing = await this.carpoolRepository.findRoundByScheduledAt(carpoolId, nextAt);
+    if (existing) {
+      this.logger.log(
+        `Round already scheduled for carpool ${carpoolId} at ${nextAt.toISOString()} (round ${existing.id})`,
+      );
+      return existing;
     }
 
     // ── Create the round in DB immediately ───────────────────────────────

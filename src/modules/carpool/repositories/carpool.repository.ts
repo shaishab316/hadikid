@@ -579,7 +579,11 @@ export class CarpoolRepository {
   async startRound(roundId: string) {
     return this.prisma.carpoolRound.update({
       where: { id: roundId },
-      data: { status: RoundStatus.IN_PROGRESS, startedAt: new Date() },
+      data: {
+        status: RoundStatus.IN_PROGRESS,
+        startedAt: new Date(),
+        completedAt: null,
+      },
       include: RoundInclude,
     });
   }
@@ -610,6 +614,25 @@ export class CarpoolRepository {
     return this.prisma.carpoolRound.findMany({
       where: { carpoolId, status: RoundStatus.SCHEDULED },
       orderBy: { scheduledAt: 'asc' },
+    });
+  }
+
+  async getActiveRounds(carpoolId: string) {
+    return await this.prisma.carpoolRound.findMany({
+      where: {
+        carpoolId,
+        status: { in: [RoundStatus.SCHEDULED, RoundStatus.IN_PROGRESS] },
+      },
+      orderBy: { scheduledAt: 'asc' },
+    });
+  }
+
+  async findRoundByScheduledAt(carpoolId: string, scheduledAt: Date) {
+    return await this.prisma.carpoolRound.findFirst({
+      where: {
+        carpoolId,
+        scheduledAt,
+      },
     });
   }
 
