@@ -79,14 +79,6 @@ export const ChecklistStatus = {
 } as const;
 export type ChecklistStatus = keyof typeof ChecklistStatus;
 
-export const CARPOOL_QUEUE = 'hadikid-carpool';
-
-export const CarpoolJob = {
-  NOTIFY_BEFORE_30: 'notify_before_30',
-  NOTIFY_BEFORE_15: 'notify_before_15',
-} as const;
-export type CarpoolJob = keyof typeof CarpoolJob;
-
 export const CarpoolEvent = {
   CREATED: 'carpool.created',
   UPDATED: 'carpool.updated',
@@ -102,7 +94,6 @@ export const CarpoolEvent = {
   ROUND_STARTED: 'carpool.round.started',
   ROUND_COMPLETED: 'carpool.round.completed',
   ROUND_CANCELLED: 'carpool.round.cancelled',
-  ROUND_REMINDER: 'carpool.round.reminder',
   VEHICLE_LOCATION_UPDATED: 'carpool.vehicle.location.updated',
 } as const;
 export type CarpoolEvent = keyof typeof CarpoolEvent;

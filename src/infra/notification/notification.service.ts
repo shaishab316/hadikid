@@ -41,4 +41,9 @@ export class NotificationService {
       options,
     );
   }
+
+  async cancelNotification(jobId: string) {
+    const job = await this.notificationQueue.getJob(jobId);
+    await job?.remove();
+  }
 }

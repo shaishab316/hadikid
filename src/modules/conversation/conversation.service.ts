@@ -68,6 +68,12 @@ export class ConversationService {
           { userId: recipientId, role: 'MEMBER' as const },
         ],
       });
+
+      const mapped = await this.mapConversation(conversation, userId);
+      await this.checkAndCreateContactWarning(mapped, userId);
+
+      const updated = await this.conversationRepo.findByIdWithoutUserRestriction(conversation.id);
+      conversation = updated ?? conversation;
     } else {
       if (!name) {
         throw new BadRequestException('Group name is required');
@@ -248,6 +254,10 @@ export class ConversationService {
       userId,
     );
 
+    if (conversation.type === 'DIRECT' && !conversation.lastMessageId) {
+      await this.checkAndCreateContactWarning(conversation, userId);
+    }
+
     if (conversation.type === 'DIRECT') {
       const opponent = conversation.participants.find(
         (p: any) => p.id !== userId,
@@ -424,5 +434,34 @@ export class ConversationService {
     });
 
     return mapped;
+  }
+
+  private async checkAndCreateContactWarning(
+    conversation: any,
+    currentUserId: number,
+  ) {
+    if (conversation.type !== 'DIRECT' || conversation.lastMessageId) {
+      return;
+    }
+
+    const opponent = conversation.participants.find((p: any) => p.id !== currentUserId);
+    if (!opponent) return;
+
+    const contact = await this.contactRepo.findContactBetweenUsersMinimal(
+      currentUserId,
+      opponent.id,
+    );
+
+    if (!contact) {
+      const name = opponent.name ?? 'This user';
+      const content = `⚠️ ${name} is not in your contact list. Please be safe and exercise caution when sharing personal information.`;
+
+      const systemMessage = await this.conversationRepo.createSystemMessage(conversation.id, currentUserId, content);
+
+      this.eventEmitter.emit(ConversationEvent.MESSAGE_SENT, {
+        targetConversationId: conversation.id,
+        message: systemMessage,
+      });
+    }
   }
 }

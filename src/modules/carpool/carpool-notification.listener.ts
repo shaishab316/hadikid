@@ -372,23 +372,52 @@ export class CarpoolNotificationListener {
       `/carpools/${carpoolId}/rounds/${roundId}`,
       { carpoolId, roundId, type },
     );
-  }
 
-  @OnEvent(CarpoolEvent.ROUND_REMINDER)
-  async onRoundReminder({
-    carpoolId,
-    roundId,
-    carpoolTitle,
-    minutesBefore,
-    memberIds,
-  }: CarpoolRoundReminderEvent) {
-    await this.notify(
-      memberIds,
-      NotificationType.CARPOOL_UPDATED,
-      `⏰ Trip in ${minutesBefore} Minutes`,
-      `Your carpool "${carpoolTitle}" starts in ${minutesBefore} minutes. Get ready!`,
-      `/carpools/${carpoolId}/rounds/${roundId}`,
-      { carpoolId, roundId, minutesBefore },
-    );
+    // ── Queue reminder notifications ──────────────────────────────────────
+    const delay = new Date(scheduledAt).getTime() - Date.now();
+
+    const delay30 = delay - 30 * 60 * 1000;
+    if (delay30 > 0) {
+      await this.notificationService.sendNotification(
+        {
+          userIds: memberIds,
+          title: `⏰ Trip in 30 Minutes`,
+          message: `Your carpool "${carpoolTitle}" starts in 30 minutes. Get ready!`,
+          type: NotificationType.CARPOOL_UPDATED,
+          actionUrl: `/carpools/${carpoolId}/rounds/${roundId}`,
+          metadata: { carpoolId, roundId, minutesBefore: 30 },
+        },
+        {
+          delay: delay30,
+          jobId: `reminder30-${roundId}`,
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 5000 },
+          removeOnComplete: true,
+          removeOnFail: { count: 50, age: 24 * 60 * 60 },
+        },
+      );
+    }
+
+    const delay15 = delay - 15 * 60 * 1000;
+    if (delay15 > 0) {
+      await this.notificationService.sendNotification(
+        {
+          userIds: memberIds,
+          title: `⏰ Trip in 15 Minutes`,
+          message: `Your carpool "${carpoolTitle}" starts in 15 minutes. Get ready!`,
+          type: NotificationType.CARPOOL_UPDATED,
+          actionUrl: `/carpools/${carpoolId}/rounds/${roundId}`,
+          metadata: { carpoolId, roundId, minutesBefore: 15 },
+        },
+        {
+          delay: delay15,
+          jobId: `reminder15-${roundId}`,
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 5000 },
+          removeOnComplete: true,
+          removeOnFail: { count: 50, age: 24 * 60 * 60 },
+        },
+      );
+    }
   }
 }

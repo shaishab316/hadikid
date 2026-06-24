@@ -177,6 +177,47 @@ export class ConversationRepository {
     });
   }
 
+  async createSystemMessage(
+    conversationId: string,
+    senderId: number,
+    content: string,
+  ) {
+    return await this.prisma.$transaction(async (tx) => {
+      const message = await tx.conversationMessage.create({
+        data: {
+          conversationId,
+          senderId,
+          type: ConversationMessageType.SYSTEM,
+          content,
+        },
+        include: MessageInclude,
+      });
+
+      await tx.conversation.update({
+        where: { id: conversationId },
+        data: {
+          lastMessageId: message.id,
+          updatedAt: new Date(),
+        },
+      });
+
+      // Increment unread count for other participants
+      await tx.conversationParticipant.updateMany({
+        where: {
+          conversationId,
+          userId: { not: senderId },
+        },
+        data: {
+          unreadCount: {
+            increment: 1,
+          },
+        },
+      });
+
+      return message;
+    });
+  }
+
   async markAsRead(
     conversationId: string,
     userId: number,

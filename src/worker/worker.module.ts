@@ -12,7 +12,6 @@ import * as winston from 'winston';
 import LokiTransport from 'winston-loki';
 import { MailWorkerModule } from '@/infra/mail/mail-worker.module';
 import { NotificationWorkerModule } from '@/infra/notification/notification-worker.module';
-import { CarpoolWorkerModule } from '@/modules/carpool/carpool-worker.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
@@ -47,7 +46,6 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     RedisModule,
     MailWorkerModule,
     NotificationWorkerModule,
-    CarpoolWorkerModule,
   ],
 })
 export class WorkerModule {}

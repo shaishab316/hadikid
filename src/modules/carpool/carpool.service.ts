@@ -6,14 +6,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { RedisService } from '@/infra/redis/redis.service';
 import { CarpoolRepository } from './repositories/carpool.repository';
 import {
-  CARPOOL_QUEUE,
   CarpoolEvent,
-  CarpoolJob,
   CarpoolRole,
   RoundStatus,
   RoundType,
@@ -36,7 +32,6 @@ export class CarpoolService {
     private readonly carpoolRepository: CarpoolRepository,
     private readonly eventEmitter: EventEmitter2,
     private readonly redis: RedisService,
-    @InjectQueue(CARPOOL_QUEUE) private readonly carpoolQueue: Queue,
     private readonly notificationService: NotificationService,
   ) {}
 
@@ -341,6 +336,7 @@ export class CarpoolService {
       return round;
     }
 
+    await this.cancelRoundJobs(roundId);
     const updated = await this.carpoolRepository.startRound(roundId);
     const memberIds = await this.carpoolRepository.getMemberUserIds(
       round.carpoolId,
@@ -371,6 +367,7 @@ export class CarpoolService {
       throw new BadRequestException('Round is not in progress');
     }
 
+    await this.cancelRoundJobs(roundId);
     const updated = await this.carpoolRepository.completeRound(roundId);
     const memberIds = await this.carpoolRepository.getMemberUserIds(
       round.carpoolId,
@@ -595,51 +592,6 @@ export class CarpoolService {
       driverId: round.driverId ?? undefined,
       ownerId,
     });
-
-    // ── Queue reminder notifications ──────────────────────────────────────
-    const memberIds = carpool.members.map((m) => m.userId);
-    const delay = nextAt.getTime() - Date.now();
-
-    const delay30 = delay - 30 * 60 * 1000;
-    if (delay30 > 0) {
-      await this.carpoolQueue.add(
-        CarpoolJob.NOTIFY_BEFORE_30,
-        {
-          carpoolId,
-          roundId: round.id,
-          carpoolTitle: carpool.title ?? '',
-          scheduledAt: nextAt.toISOString(),
-          minutesBefore: 30,
-          memberIds,
-        },
-        {
-          delay: delay30,
-          jobId: `reminder30-${round.id}`,
-          removeOnComplete: true,
-        },
-      );
-    }
-
-    const delay15 = delay - 15 * 60 * 1000;
-    if (delay15 > 0) {
-      await this.carpoolQueue.add(
-        CarpoolJob.NOTIFY_BEFORE_15,
-        {
-          carpoolId,
-          roundId: round.id,
-          carpoolTitle: carpool.title ?? '',
-          scheduledAt: nextAt.toISOString(),
-          minutesBefore: 15,
-          memberIds,
-        },
-        {
-          delay: delay15,
-          jobId: `reminder15-${round.id}`,
-          removeOnComplete: true,
-        },
-      );
-    }
-
     return round;
   }
 
@@ -754,9 +706,7 @@ export class CarpoolService {
   }
 
   private async cancelRoundJobs(roundId: string) {
-    const job30 = await this.carpoolQueue.getJob(`reminder30-${roundId}`);
-    const job15 = await this.carpoolQueue.getJob(`reminder15-${roundId}`);
-    await job30?.remove();
-    await job15?.remove();
+    await this.notificationService.cancelNotification(`reminder30-${roundId}`);
+    await this.notificationService.cancelNotification(`reminder15-${roundId}`);
   }
 }
