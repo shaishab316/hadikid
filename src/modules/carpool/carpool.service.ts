@@ -676,6 +676,16 @@ export class CarpoolService {
       ownerId,
     });
 
+    // Queue reminders here — next to cancelRoundJobs — so they are always paired.
+    // nextAt is UTC; scheduleRoundReminders compares directly to Date.now().
+    await this.scheduleRoundReminders(
+      round.id,
+      carpoolId,
+      carpool.title ?? '',
+      carpool.members.map((m) => m.userId),
+      nextAt,
+    );
+
     return round;
   }
 
@@ -761,6 +771,62 @@ export class CarpoolService {
   private async cancelRoundJobs(roundId: string) {
     await this.notificationService.cancelNotification(`reminder30-${roundId}`);
     await this.notificationService.cancelNotification(`reminder15-${roundId}`);
+  }
+
+  /**
+   * Queues BullMQ reminder notifications for a scheduled round.
+   * Called immediately after a round row is created so that cancel
+   * (cancelRoundJobs) and schedule always live in the same place.
+   *
+   * The scheduledAt stored in the DB is always UTC, so we compare
+   * directly against Date.now() — no timezone conversion needed here.
+   */
+  async scheduleRoundReminders(
+    roundId: string,
+    carpoolId: string,
+    carpoolTitle: string,
+    memberIds: number[],
+    scheduledAt: Date,
+  ) {
+    const msUntilTrip = scheduledAt.getTime() - Date.now();
+
+    const reminders: Array<{ label: string; offsetMs: number }> = [
+      { label: '30', offsetMs: 30 * 60 * 1000 },
+      { label: '15', offsetMs: 15 * 60 * 1000 },
+    ];
+
+    for (const { label, offsetMs } of reminders) {
+      const delay = msUntilTrip - offsetMs;
+      if (delay <= 0) {
+        this.logger.log(
+          `Skipping ${label}-min reminder for round ${roundId}: trip is too soon (delay=${delay}ms)`,
+        );
+        continue;
+      }
+
+      await this.notificationService.sendNotification(
+        {
+          userIds: memberIds,
+          title: `⏰ Trip in ${label} Minutes`,
+          message: `Your carpool "${carpoolTitle}" starts in ${label} minutes. Get ready!`,
+          type: NotificationType.CARPOOL_UPDATED,
+          actionUrl: `/carpools/${carpoolId}/rounds/${roundId}`,
+          metadata: { carpoolId, roundId, minutesBefore: Number(label) },
+        },
+        {
+          delay,
+          jobId: `reminder${label}-${roundId}`,
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 5000 },
+          removeOnComplete: true,
+          removeOnFail: { count: 50, age: 24 * 60 * 60 },
+        },
+      );
+
+      this.logger.log(
+        `Reminder (${label} min) queued for round ${roundId} — fires in ${Math.round(delay / 60000)} min`,
+      );
+    }
   }
 
   private async getOrThrow(carpoolId: string) {

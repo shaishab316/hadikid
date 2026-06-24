@@ -13,7 +13,6 @@ import type {
   CarpoolMemberLeftEvent,
   CarpoolRoundCreatedEvent,
   CarpoolRoundCompletedEvent,
-  CarpoolRoundReminderEvent,
   CarpoolRoundStartedEvent,
   CarpoolUpdatedEvent,
 } from './carpool.interface';
@@ -221,7 +220,7 @@ export class CarpoolNotificationListener {
 
     await this.notify(
       othersToNotify,
-      NotificationType.CARPOOL_REQUEST,
+      NotificationType.CARPOOL_UPDATED,
       'New Member Joined',
       `${newMember?.name ?? 'Someone'} joined "${title}".`,
       this.carpoolUrl(carpoolId),
@@ -364,60 +363,38 @@ export class CarpoolNotificationListener {
   }: CarpoolRoundCreatedEvent) {
     const tripType = type === 'PICKUP' ? 'Pickup' : 'Drop-off';
 
+    // Format the display date in the carpool's configured timezone (UTC fallback).
+    // scheduledAt from the DB is always UTC — we just need to display it nicely.
+    const carpool = await this.prisma.carpool.findUnique({
+      where: { id: carpoolId },
+      select: { repeatRule: { select: { timezone: true } } },
+    });
+
+    const timezone =
+      carpool?.repeatRule?.timezone && carpool.repeatRule.timezone !== 'UTC'
+        ? carpool.repeatRule.timezone
+        : 'UTC';
+
+    let dateFormatted: string;
+    try {
+      dateFormatted = scheduledAt.toLocaleString(undefined, {
+        timeZone: timezone,
+      });
+    } catch {
+      dateFormatted = scheduledAt.toUTCString();
+    }
+
     await this.notify(
       memberIds,
       NotificationType.CARPOOL_UPDATED,
       `New ${tripType} Trip Scheduled`,
-      `A new ${type.toLowerCase()} trip for "${carpoolTitle}" has been scheduled for ${scheduledAt.toLocaleString()}.`,
+      `A new ${type.toLowerCase()} trip for "${carpoolTitle}" has been scheduled for ${dateFormatted}.`,
       `/carpools/${carpoolId}/rounds/${roundId}`,
       { carpoolId, roundId, type },
     );
 
-    // ── Queue reminder notifications ──────────────────────────────────────
-    const delay = new Date(scheduledAt).getTime() - Date.now();
-
-    const delay30 = delay - 30 * 60 * 1000;
-    if (delay30 > 0) {
-      await this.notificationService.sendNotification(
-        {
-          userIds: memberIds,
-          title: `⏰ Trip in 30 Minutes`,
-          message: `Your carpool "${carpoolTitle}" starts in 30 minutes. Get ready!`,
-          type: NotificationType.CARPOOL_UPDATED,
-          actionUrl: `/carpools/${carpoolId}/rounds/${roundId}`,
-          metadata: { carpoolId, roundId, minutesBefore: 30 },
-        },
-        {
-          delay: delay30,
-          jobId: `reminder30-${roundId}`,
-          attempts: 3,
-          backoff: { type: 'exponential', delay: 5000 },
-          removeOnComplete: true,
-          removeOnFail: { count: 50, age: 24 * 60 * 60 },
-        },
-      );
-    }
-
-    const delay15 = delay - 15 * 60 * 1000;
-    if (delay15 > 0) {
-      await this.notificationService.sendNotification(
-        {
-          userIds: memberIds,
-          title: `⏰ Trip in 15 Minutes`,
-          message: `Your carpool "${carpoolTitle}" starts in 15 minutes. Get ready!`,
-          type: NotificationType.CARPOOL_UPDATED,
-          actionUrl: `/carpools/${carpoolId}/rounds/${roundId}`,
-          metadata: { carpoolId, roundId, minutesBefore: 15 },
-        },
-        {
-          delay: delay15,
-          jobId: `reminder15-${roundId}`,
-          attempts: 3,
-          backoff: { type: 'exponential', delay: 5000 },
-          removeOnComplete: true,
-          removeOnFail: { count: 50, age: 24 * 60 * 60 },
-        },
-      );
-    }
+    // Reminder jobs (15 min / 30 min) are queued by CarpoolService.scheduleRoundReminders
+    // immediately after the round row is created, so we do NOT schedule them here.
+    // This ensures create and cancel always live in the same place (the service).
   }
 }

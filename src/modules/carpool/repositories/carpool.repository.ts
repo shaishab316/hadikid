@@ -201,7 +201,7 @@ export class CarpoolRepository {
             endDate: repeatRule.endDate ?? null,
             byDay,
             timeOfDay,
-            timezone: 'UTC',
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
           },
         },
         members: {
