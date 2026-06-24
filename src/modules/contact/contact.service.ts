@@ -51,6 +51,36 @@ export class ContactService {
     );
     if (existingRequest) {
       if (existingRequest.status === 'PENDING') {
+        if (existingRequest.receiverId === senderId) {
+          // Current sender (B) is accepting the pending request sent by the other user (A)
+          const updatedRequest = await this.contactRepo.updateRequestStatus(
+            existingRequest.id,
+            'ACCEPTED',
+            new Date(),
+          );
+
+          // Create confirmed contact connection
+          await this.contactRepo.createContact(
+            existingRequest.senderId,
+            existingRequest.receiverId,
+          );
+
+          // Send accepted notification to original sender (A)
+          const receiver = await this.userRepo.findById(senderId);
+          try {
+            await this.notificationService.sendNotification({
+              userIds: [existingRequest.senderId],
+              title: 'Contact Request Accepted',
+              message: `${receiver?.name || 'Someone'} accepted your contact request`,
+              type: NotificationType.CONTACT_REQUEST,
+            });
+          } catch {
+            // Suppress notification issues
+          }
+
+          return updatedRequest;
+        }
+
         throw new ConflictException(
           'A pending contact request already exists between you',
         );
