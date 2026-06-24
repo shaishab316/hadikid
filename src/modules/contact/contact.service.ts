@@ -72,7 +72,7 @@ export class ContactService {
               userIds: [existingRequest.senderId],
               title: 'Contact Request Accepted',
               message: `${receiver?.name || 'Someone'} accepted your contact request`,
-              type: NotificationType.CONTACT_REQUEST,
+              type: NotificationType.CONTACT_ACCEPTED,
             });
           } catch {
             // Suppress notification issues
@@ -165,7 +165,7 @@ export class ContactService {
           userIds: [request.senderId],
           title: 'Contact Request Accepted',
           message: `${receiver?.name || 'Someone'} accepted your contact request`,
-          type: NotificationType.CONTACT_REQUEST,
+          type: NotificationType.CONTACT_ACCEPTED,
         });
       } catch {
         // Suppress notification issues
