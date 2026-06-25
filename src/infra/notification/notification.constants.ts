@@ -24,3 +24,10 @@ export const NotificationSearchableFields = [
   'title',
   'message',
 ] as const satisfies ReadonlyArray<keyof Prisma.NotificationWhereInput>;
+
+export const NotificationProvider = {
+  FIREBASE: 'FIREBASE',
+  ONE_SIGNAL: 'ONE_SIGNAL',
+} as const;
+
+export type NotificationProvider = keyof typeof NotificationProvider;

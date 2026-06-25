@@ -29,7 +29,7 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto) {
-    const { phone, password, address, pushToken } = dto;
+    const { phone, password, address, pushToken, notificationProvider } = dto;
     this.logger.debug(`Login attempt for ${phone}`);
 
     const user = await this.userRepository.findByPhoneWithAuth(phone);
@@ -89,7 +89,11 @@ export class AuthService {
     }
 
     if (pushToken) {
-      await this.notificationRepository.upsertDevice(user.id, pushToken);
+      await this.notificationRepository.upsertDevice(
+        user.id,
+        pushToken,
+        notificationProvider,
+      );
       this.logger.debug(`Push token stored for user ${user.id}`);
     }
 
