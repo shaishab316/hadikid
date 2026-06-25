@@ -9,6 +9,8 @@ const LoginSchema = z.object({
   password: _.password({ level: 'weak' }),
 
   address: _.address.optional(),
+
+  pushToken: z.string().max(500).min(1).optional(),
 });
 
 export class LoginDto extends createZodDto(LoginSchema) {}

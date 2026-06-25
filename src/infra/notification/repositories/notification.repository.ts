@@ -109,4 +109,38 @@ export class NotificationRepository {
     const count = await this.prisma.notification.count({ where: { id } });
     return count > 0;
   }
+
+  // ─── UserDevice ───────────────────────────────────────────────────────────
+
+  /**
+   * Upsert a push token for a user.
+   * If the (userId, token) pair already exists, mark it active and update lastSeenAt.
+   * Otherwise create a new record.
+   */
+  async upsertDevice(userId: number, token: string, platform?: string) {
+    return await this.prisma.userDevice.upsert({
+      where: { userId_token: { userId, token } },
+      create: {
+        userId,
+        token,
+        platform,
+        isActive: true,
+      },
+      update: {
+        isActive: true,
+        lastSeenAt: new Date(),
+        ...(platform ? { platform } : {}),
+      },
+    });
+  }
+
+  /**
+   * Deactivate all push tokens for a user (called on logout).
+   */
+  async deactivateDevicesByUserId(userId: number) {
+    return await this.prisma.userDevice.updateMany({
+      where: { userId, isActive: true },
+      data: { isActive: false },
+    });
+  }
 }

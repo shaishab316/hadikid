@@ -10,6 +10,7 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { User } from '@prisma/client';
 import { resolveLocation } from '../address/address.constant';
 import { NotificationService } from '@/infra/notification/notification.service';
+import { NotificationRepository } from '@/infra/notification/repositories/notification.repository';
 import { UserRole, UserStatus } from '../user/user.constant';
 import { OTP_LENGTH, OtpReason } from './auth.constant';
 import { ChildRepository } from '../child/repositories/child.repository';
@@ -23,11 +24,12 @@ export class AuthService {
     private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService,
     private readonly notificationService: NotificationService,
+    private readonly notificationRepository: NotificationRepository,
     private readonly childRepository: ChildRepository,
   ) {}
 
   async login(dto: LoginDto) {
-    const { phone, password, address } = dto;
+    const { phone, password, address, pushToken } = dto;
     this.logger.debug(`Login attempt for ${phone}`);
 
     const user = await this.userRepository.findByPhoneWithAuth(phone);
@@ -84,6 +86,11 @@ export class AuthService {
           create: resolveLocation(address),
         },
       });
+    }
+
+    if (pushToken) {
+      await this.notificationRepository.upsertDevice(user.id, pushToken);
+      this.logger.debug(`Push token stored for user ${user.id}`);
     }
 
     await this.notificationService.sendNotification({
@@ -234,6 +241,7 @@ export class AuthService {
 
   async logout(userId: number) {
     await this.authRepository.revokeAllRefreshTokens(userId.toString());
+    await this.notificationRepository.deactivateDevicesByUserId(userId);
     this.logger.log(`User ${userId} logged out`);
   }
 
