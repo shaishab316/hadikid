@@ -347,7 +347,25 @@ export class CarpoolRepository {
 
   async assignDriver(carpoolId: string, userId: number) {
     return this.prisma.$transaction(async (tx) => {
-      const carpool = await tx.carpool.update({
+      const carpool = await tx.carpool.findUnique({
+        where: { id: carpoolId },
+        select: {
+          title: true,
+          driver: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      });
+
+      if (carpool?.driver) {
+        throw new BadRequestException(
+          `Carpool '${carpool.title}' already has driver '${carpool.driver.name}'`,
+        );
+      }
+
+      const updatedCarpool = await tx.carpool.update({
         where: { id: carpoolId },
         data: { driverId: userId },
         include: CarpoolInclude,
@@ -359,7 +377,7 @@ export class CarpoolRepository {
         data: { driverId: userId },
       });
 
-      return carpool;
+      return updatedCarpool;
     });
   }
 

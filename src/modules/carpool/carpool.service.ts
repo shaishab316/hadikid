@@ -6,7 +6,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { RedisService } from '@/infra/redis/redis.service';
 import { CarpoolRepository } from './repositories/carpool.repository';
 import {
   CarpoolEvent,
@@ -35,7 +34,6 @@ export class CarpoolService {
   constructor(
     private readonly carpoolRepository: CarpoolRepository,
     private readonly eventEmitter: EventEmitter2,
-    private readonly redis: RedisService,
     private readonly notificationService: NotificationService,
   ) {}
 
