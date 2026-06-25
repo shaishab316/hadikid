@@ -33,7 +33,13 @@ export const UserSelect = {
   status: false,
   createdAt: true,
   _count: {
-    select: { children: true, carpoolMembers: true, driverCarpools: true },
+    select: {
+      children: true,
+      carpoolMembers: {
+        where: { carpool: { status: 'ACTIVE' } },
+      },
+      driverCarpools: true,
+    },
   },
 } as const satisfies Prisma.UserSelect;
 

@@ -5,6 +5,7 @@ import type { Prisma } from '@prisma/client';
 import { UnverifiedEntity } from '../interfaces/user.types';
 import { LocationOmit } from '@/modules/address/address.constant';
 import { imgSelect } from '@/modules/media/media.constant';
+import { CarpoolStatus } from '@/modules/carpool/carpool.constant';
 
 @Injectable()
 export class UserRepository {
@@ -255,7 +256,9 @@ export class UserRepository {
           select: {
             driverCarpools: true,
             children: true,
-            carpoolMembers: true,
+            carpoolMembers: {
+              where: { carpool: { status: CarpoolStatus.ACTIVE } },
+            },
           },
         },
       },

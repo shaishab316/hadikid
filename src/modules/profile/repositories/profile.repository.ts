@@ -13,6 +13,7 @@ import { LocationOmit } from '@/modules/address/address.constant';
 import { BasicUserInfoEditDto } from '../dto/edit-basic-user-info.dto';
 import { ContactRepository } from '@/modules/contact/repositories/contact.repository';
 import { UserSelect } from '@/modules/user/user.constant';
+import { CarpoolStatus } from '@/modules/carpool/carpool.constant';
 
 @Injectable()
 export class ProfileRepository {
@@ -131,7 +132,9 @@ export class ProfileRepository {
         _count: {
           select: {
             children: true,
-            carpoolMembers: true,
+            carpoolMembers: {
+              where: { carpool: { status: CarpoolStatus.ACTIVE } },
+            },
           },
         },
       },

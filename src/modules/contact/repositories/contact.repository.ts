@@ -13,6 +13,7 @@ import {
   UserStatus,
 } from '@/modules/user/user.constant';
 import { calculateDistanceInKm } from '@/common/helpers/calculateDistance';
+import { CarpoolStatus } from '@/modules/carpool/carpool.constant';
 
 @Injectable()
 export class ContactRepository {
@@ -356,7 +357,9 @@ export class ContactRepository {
           _count: {
             select: {
               children: true,
-              carpoolMembers: true,
+              carpoolMembers: {
+                where: { carpool: { status: CarpoolStatus.ACTIVE } },
+              },
             },
           },
           school: {
