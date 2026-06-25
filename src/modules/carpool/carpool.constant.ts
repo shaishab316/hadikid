@@ -138,8 +138,9 @@ export const CarpoolInclude = {
     },
   },
   rounds: {
-    where: {
-      status: RoundStatus.SCHEDULED,
+    take: 1,
+    orderBy: {
+      createdAt: 'desc',
     },
     omit: {
       carpoolId: true,

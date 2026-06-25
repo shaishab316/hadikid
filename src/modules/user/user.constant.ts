@@ -32,6 +32,9 @@ export const UserSelect = {
   ratingCount: true,
   status: false,
   createdAt: true,
+  _count: {
+    select: { children: true, carpoolMembers: true, driverCarpools: true },
+  },
 } as const satisfies Prisma.UserSelect;
 
 export const UserMinimalSelect = {
