@@ -15,15 +15,15 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - '6379:6379'
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes
+  # redis:
+  #   image: redis:7-alpine
+  #   ports:
+  #     - '6379:6379'
+  #   volumes:
+  #     - redis_data:/data
+  #   command: redis-server --appendonly yes
 
 volumes:
   loki_data:
   grafana_data:
-  redis_data:
+  # redis_data:
