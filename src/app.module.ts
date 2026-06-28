@@ -30,6 +30,7 @@ import { ContactModule } from './modules/contact/contact.module';
 import { CarpoolModule } from './modules/carpool/carpool.module';
 import { PrivacyPolicyModule } from './modules/privacy-policy/privacy-policy.module';
 import { RatingModule } from './modules/rating/rating.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { RatingModule } from './modules/rating/rating.module';
     SocketModule,
     MailModule,
     NotificationModule,
+    HealthModule,
     UserModule,
     AuthModule,
     ProfileModule,
