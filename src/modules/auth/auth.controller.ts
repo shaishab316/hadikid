@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Logger, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Logger,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { ApiResponse } from '@/common/types/api-response';
@@ -17,6 +25,7 @@ export class AuthController {
 
   @Post('login')
   @AuthThrottle()
+  @HttpCode(200)
   async login(@Body() dto: LoginDto): Promise<ApiResponse> {
     const data = await this.authService.login(dto);
 
@@ -28,6 +37,7 @@ export class AuthController {
 
   @Post('forgot-password')
   @AuthThrottle()
+  @HttpCode(200)
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     await this.authService.forgotPassword(dto);
 
@@ -39,6 +49,7 @@ export class AuthController {
 
   @Post('reset-password')
   @AuthThrottle()
+  @HttpCode(200)
   async resetPassword(@Body() dto: ResetPasswordDto) {
     const code = await this.authService.resetPassword(dto);
 
@@ -52,6 +63,7 @@ export class AuthController {
 
   @Post('refresh-token')
   @AuthThrottle()
+  @HttpCode(200)
   async refreshToken(@Body() dto: RefreshTokenDto) {
     const data = await this.authService.refreshToken(dto);
 
