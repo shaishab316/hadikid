@@ -52,7 +52,7 @@ async function bootstrap() {
   app.enableCors({
     origin: corsOrigin,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    credentials: true,
+    credentials: false, // only mobile app don't need cookies
   });
 
   // compression + body parsing
