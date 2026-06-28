@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.carpooling",
+      "sha256_cert_fingerprints": [
+        "39:60:F1:35:C3:64:E5:2C:28:F8:06:1B:42:DF:C7:E1:BE:69:42:E2:35:9A:5B:DA:21:D2:54:A0:0B:DE:CF:BD"
+      ]
+    }
+  }
+]

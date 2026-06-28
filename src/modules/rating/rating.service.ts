@@ -63,11 +63,8 @@ export class RatingService {
 
   async getMyReceiveReview(userId: number, query: QueryDefaultDto) {
     const { limit, page } = query;
-    const [reviews, total, breakdown] = await this.ratingRepo.findReviewsReceived(
-      userId,
-      limit,
-      page,
-    );
+    const [reviews, total, breakdown] =
+      await this.ratingRepo.findReviewsReceived(userId, limit, page);
     return { reviews, total, breakdown };
   }
 }

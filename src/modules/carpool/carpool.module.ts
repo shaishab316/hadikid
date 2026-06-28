@@ -8,10 +8,7 @@ import { NotificationModule } from '@/infra/notification/notification.module';
 import { ConversationModule } from '../conversation/conversation.module';
 
 @Module({
-  imports: [
-    NotificationModule,
-    ConversationModule,
-  ],
+  imports: [NotificationModule, ConversationModule],
   controllers: [CarpoolController],
   providers: [
     CarpoolService,

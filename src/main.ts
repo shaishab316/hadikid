@@ -12,9 +12,6 @@ import { AppModule } from './app.module';
 import { setupApiDocs } from './common/config/api-docs.config';
 import type { Env } from './common/config/app.config';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
-import { WinstonModule } from 'nest-winston';
-import * as winston from 'winston';
-import LokiTransport from 'winston-loki';
 import { CacheInterceptor } from './common/interceptors/cache.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -62,7 +59,10 @@ async function bootstrap() {
   app.use(compression());
   app.use(express.json());
 
-  app.useStaticAssets(path.join(process.cwd(), 'public'), { maxAge: '1d' });
+  app.useStaticAssets(path.join(process.cwd(), 'public'), {
+    maxAge: '1d',
+    dotfiles: 'allow',
+  });
 
   // global prefix
   app.setGlobalPrefix('api/v1', {

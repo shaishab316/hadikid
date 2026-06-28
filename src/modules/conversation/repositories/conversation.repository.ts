@@ -307,7 +307,11 @@ export class ConversationRepository {
     });
   }
 
-  async addParticipant(conversationId: string, userId: number, role: 'ADMIN' | 'MEMBER' = 'MEMBER') {
+  async addParticipant(
+    conversationId: string,
+    userId: number,
+    role: 'ADMIN' | 'MEMBER' = 'MEMBER',
+  ) {
     return await this.prisma.conversationParticipant.upsert({
       where: {
         conversationId_userId: { conversationId, userId },

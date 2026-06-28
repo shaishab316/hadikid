@@ -4,7 +4,10 @@
   "sourceRoot": "src",
   "compilerOptions": {
     "deleteOutDir": true,
-    "assets": [{ "include": "../public/**/*", "outDir": "./dist" }]
+    "assets": [
+      { "include": "../public/**/*", "outDir": "./dist" },
+      { "include": "../public/**/.*", "outDir": "./dist" }
+    ]
   },
   "projects": {
     "worker": {
