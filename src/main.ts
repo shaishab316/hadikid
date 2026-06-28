@@ -127,7 +127,9 @@ async function bootstrap() {
   await app.listen(port);
 
   const appUrl = await app.getUrl();
-  logger.log(`Application is running on: ${chalk.blue(appUrl)}`);
+  logger.log(
+    `Application is running on: ${chalk.blue(appUrl)}, env : ${config.get('NODE_ENV')}`,
+  );
 }
 
 bootstrap().catch((err) => {
