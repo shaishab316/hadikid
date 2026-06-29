@@ -56,20 +56,6 @@ const envSchema = z.object({
     .min(10, 'OTP_SECRET must be at least 10 characters')
     .describe('Base secret for OTP generation'),
 
-  // Stripe Payment
-  STRIPE_SECRET_KEY: z
-    .string()
-    .startsWith('sk_', 'STRIPE_SECRET_KEY must start with sk_')
-    .describe('Stripe secret API key'),
-  STRIPE_PUBLISHABLE_KEY: z
-    .string()
-    .startsWith('pk_', 'STRIPE_PUBLISHABLE_KEY must start with pk_')
-    .describe('Stripe publishable API key'),
-  STRIPE_WEBHOOK_SECRET: z
-    .string()
-    .startsWith('whsec_', 'STRIPE_WEBHOOK_SECRET must start with whsec_')
-    .describe('Stripe webhook signing secret'),
-
   // Cloudinary Media
   CLOUDINARY_CLOUD_NAME: z
     .string()
