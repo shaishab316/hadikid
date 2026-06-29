@@ -31,6 +31,7 @@ import { CarpoolModule } from './modules/carpool/carpool.module';
 import { PrivacyPolicyModule } from './modules/privacy-policy/privacy-policy.module';
 import { RatingModule } from './modules/rating/rating.module';
 import { HealthModule } from './modules/health/health.module';
+import { CommandModule } from 'nestjs-command';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { HealthModule } from './modules/health/health.module';
     RedisModule,
     SocketModule,
     MailModule,
+    CommandModule,
     NotificationModule,
     HealthModule,
     UserModule,

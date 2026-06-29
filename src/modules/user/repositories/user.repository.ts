@@ -6,6 +6,7 @@ import { UnverifiedEntity } from '../interfaces/user.types';
 import { LocationOmit } from '@/modules/address/address.constant';
 import { imgSelect } from '@/modules/media/media.constant';
 import { CarpoolStatus } from '@/modules/carpool/carpool.constant';
+import { UserRole } from '../user.constant';
 
 @Injectable()
 export class UserRepository {
@@ -286,5 +287,37 @@ export class UserRepository {
     return await this.prisma.user.delete({
       where: { id: userId },
     });
+  }
+
+  async updateRoleViaAdmin(userId: number, role: UserRole) {
+    return await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        roles: {
+          connectOrCreate: {
+            where: {
+              userId_role: {
+                userId: userId,
+                role: role,
+              },
+            },
+            create: {
+              role: role,
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async downgradeRoleViaAdmin(userId: number, role: UserRole) {
+    return await this.prisma.userRoleMapping
+      .delete({
+        where: { userId_role: { userId, role } },
+      })
+      .catch((e) => {
+        if (e.code === 'P2025') return null; // role wasn't assigned, ignore
+        throw e;
+      });
   }
 }
